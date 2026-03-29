@@ -417,24 +417,6 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
 .chain-node.chain-wave-red{background:rgba(239,68,68,.1)!important;box-shadow:0 0 18px rgba(239,68,68,.2);}
 .chain-node.chain-wave-red .cn-badge{transform:scale(1.08);transition:transform .2s;}
 
-/* Problem statement */
-.problem-row{display:flex;align-items:stretch;gap:8px;width:100%;max-width:620px;margin-bottom:22px;}
-.problem-col{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:left;}
-.problem-col.active-col{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.04);}
-.problem-col-label{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
-.problem-col.active-col .problem-col-label{color:#ef4444;}
-.problem-col-label.blue-lbl{color:var(--accent);}
-.problem-col-item{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:4px;display:flex;align-items:flex-start;gap:5px;}
-.problem-col-item::before{content:'·';flex-shrink:0;color:var(--dim);}
-.problem-col.pulsegrid-col{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.04);}
-
-/* Animated metric badges */
-.metric-strip{display:flex;gap:8px;width:100%;max-width:620px;margin-bottom:24px;}
-.metric-badge{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 12px;text-align:center;}
-.metric-badge-num{font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:3px;}
-.metric-badge-lbl{font-size:9px;color:var(--muted);line-height:1.35;}
-@media(max-width:540px){.metric-strip{flex-direction:column;}.problem-row{flex-direction:column;}}
-
 /* Blinking dot */
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 </style>
@@ -488,40 +470,6 @@ Trace the full chain.
 Know what to do next.</span></div>
   <div class="hero-sub">
     Whether you’re responding to a live incident or stress-testing a hypothetical one, PulseGrid simulates a dashboard that maps the full failure chain and recommends what to do now, next, and long term.
-  </div>
-
-  <!-- why you need this -->
-  <div class="problem-row">
-    <div class="problem-col active-col">
-      <div class="problem-col-label">Standard observability tools</div>
-      <div class="problem-col-item">Alert when something is already broken</div>
-      <div class="problem-col-item">Show metrics in isolation, not causally</div>
-      <div class="problem-col-item">Can’t trace structural risk before failure</div>
-      <div class="problem-col-item">Leave the "why" up to the responder</div>
-    </div>
-    <div class="problem-col pulsegrid-col">
-      <div class="problem-col-label blue-lbl">PulseGrid</div>
-      <div class="problem-col-item">Maps the incident across 7 causal layers</div>
-      <div class="problem-col-item">Models hypothetical failures before they happen</div>
-      <div class="problem-col-item">Surfaces structural fragility at the source</div>
-      <div class="problem-col-item">Generates guided response at every level</div>
-    </div>
-  </div>
-
-  <!-- metric stats strip -->
-  <div class="metric-strip">
-    <div class="metric-badge">
-      <div class="metric-badge-num">7</div>
-      <div class="metric-badge-lbl">Causal layers mapped per incident — from budget decision to user impact</div>
-    </div>
-    <div class="metric-badge">
-      <div class="metric-badge-num">13+</div>
-      <div class="metric-badge-lbl">Pre-built failure scenarios with full chain analysis and blast radius</div>
-    </div>
-    <div class="metric-badge">
-      <div class="metric-badge-num">∞</div>
-      <div class="metric-badge-lbl">Novel incidents analyzed via AI — not limited to predefined templates</div>
-    </div>
   </div>
 
   <!-- input -->
