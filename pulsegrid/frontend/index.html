@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PulseGrid AI — Cloud Failure Intelligence</title>
+<style>
+:root{
+  --bg:#07080c;--surface:#0f1117;--surface2:#161924;--border:#1e2230;
+  --accent:#6366f1;--accent2:#8b5cf6;
+  --green:#34d399;--yellow:#fbbf24;--orange:#fb923c;--red:#ef4444;--purple:#a78bfa;
+  --text:#e2e8f0;--muted:#4b5563;--dim:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;}
+
+/* ─── WELCOME ─────────────────────────────────────── */
+#screen-welcome{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;position:relative;}
+.grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(99,102,241,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;position:relative;}
+.logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(99,102,241,.35);}
+.brand-name{font-size:26px;font-weight:800;letter-spacing:-0.5px;}
+.brand-ai{color:var(--accent);}
+.hero-title{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1.1;margin-bottom:16px;max-width:640px;}
+.hero-grad{background:linear-gradient(135deg,#fff 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:17px;color:var(--dim);max-width:480px;line-height:1.6;margin-bottom:44px;}
+.cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;width:240px;text-align:left;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 12px 40px rgba(99,102,241,.18);}
+.card.primary::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.card-badge{display:inline-block;background:rgba(99,102,241,.15);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:4px;text-transform:uppercase;margin-bottom:10px;}
+.card-icon{font-size:26px;margin-bottom:10px;}
+.card-title{font-size:15px;font-weight:700;margin-bottom:5px;}
+.card-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.welcome-footer{color:var(--muted);font-size:12px;position:relative;}
+
+/* ─── CHAT ─────────────────────────────────────────── */
+#screen-chat{flex-direction:column;max-width:720px;margin:0 auto;width:100%;padding:0 20px;max-height:100vh;}
+.chat-header{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;}
+.chat-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-title{font-weight:700;font-size:14px;}
+.chat-status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px;margin-top:1px;}
+.status-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hdr-spacer{flex:1;}
+.progress-wrap{display:flex;align-items:center;gap:8px;}
+.progress-label{font-size:11px;color:var(--muted);}
+.progress-track{width:100px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .4s ease;}
+
+.messages{flex:1;overflow-y:auto;padding:20px 0;display:flex;flex-direction:column;gap:16px;}
+.msg{display:flex;gap:10px;}
+.msg.user{flex-direction:row-reverse;}
+.avatar{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;}
+.msg.user .avatar{background:var(--surface2);color:var(--dim);}
+.msg-body{flex:1;max-width:calc(100% - 40px);}
+.msg-from{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.msg.user .msg-from{text-align:right;}
+.bubble{background:var(--surface);border:1px solid var(--border);border-radius:14px;border-top-left-radius:4px;padding:12px 16px;font-size:14px;line-height:1.6;color:var(--text);}
+.msg.user .bubble{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.22);border-radius:14px;border-top-right-radius:4px;}
+
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px;}
+.opt{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:12px;color:var(--dim);cursor:pointer;text-align:left;transition:all .15s;line-height:1.4;}
+.opt:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.08);}
+.opt.sel{border-color:var(--accent2);color:var(--accent2);background:rgba(139,92,246,.1);font-weight:600;}
+.opt:disabled{opacity:.5;cursor:default;}
+.multi-hint{font-size:11px;color:var(--muted);margin-top:6px;font-style:italic;}
+.confirm-btn{display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:9px;padding:9px 18px;color:white;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;transition:opacity .2s;}
+.confirm-btn:hover{opacity:.85;}
+.confirm-btn.show{display:block;}
+
+.input-row{padding:12px 0 20px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.chat-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;font-family:inherit;transition:border-color .2s;resize:none;height:44px;}
+.chat-input:focus{border-color:var(--accent);}
+.chat-input::placeholder{color:var(--muted);}
+.send-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:11px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s;}
+.send-btn:hover{opacity:.85;}
+
+.typing-wrap{display:flex;gap:4px;padding:8px 12px;}
+.t-dot{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:tdot 1.2s infinite;}
+.t-dot:nth-child(2){animation-delay:.2s;}
+.t-dot:nth-child(3){animation-delay:.4s;}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-5px);opacity:1;}}
+
+/* ─── DEMO PICKER ────────────────────────────────── */
+#screen-demo{flex-direction:column;max-width:720px;margin:0 auto;width:100%;padding:32px 20px;min-height:100vh;overflow-y:auto;}
+.back-link{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:20px;transition:color .2s;}
+.back-link:hover{color:var(--text);}
+.demo-title{font-size:26px;font-weight:800;margin-bottom:4px;}
+.demo-sub{font-size:13px;color:var(--muted);margin-bottom:28px;}
+.cat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px;padding-left:2px;}
+.cat-section{margin-bottom:24px;}
+.scen-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.scen-btn{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer;text-align:left;transition:all .15s;}
+.scen-btn:hover{border-color:var(--accent);background:rgba(99,102,241,.05);}
+.scen-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.scen-desc{font-size:11px;color:var(--muted);}
+
+/* ─── LOADING ─────────────────────────────────────── */
+#screen-loading{flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;padding:40px;}
+.spin{width:72px;height:72px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);border-right-color:var(--accent2);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-title{font-size:20px;font-weight:700;}
+.loading-steps{display:flex;flex-direction:column;gap:7px;text-align:left;min-width:260px;}
+.lstep{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);transition:color .3s;}
+.lstep.on{color:var(--text);}
+.lstep.done{color:var(--green);}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .3s;}
+.lstep.on .ldot{background:var(--accent);}
+.lstep.done .ldot{background:var(--green);}
+
+/* ─── RESULTS ─────────────────────────────────────── */
+#screen-results{flex-direction:column;max-width:1160px;margin:0 auto;width:100%;padding:0 20px 48px;min-height:100vh;overflow-y:auto;}
+
+.res-header{display:flex;align-items:flex-start;gap:16px;padding:20px 0;border-bottom:1px solid var(--border);margin-bottom:24px;flex-wrap:wrap;}
+.res-title-group{flex:1;min-width:200px;}
+.res-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px;}
+.res-headline{font-size:24px;font-weight:800;line-height:1.2;}
+.risk-widget{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;}
+.risk-ring-wrap{position:relative;width:76px;height:76px;}
+.risk-ring-wrap svg{position:absolute;top:0;left:0;}
+.risk-score-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:800;line-height:1;}
+.risk-state-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.res-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;}
+.btn{padding:8px 16px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--dim);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;}
+.btn-primary:hover{opacity:.85;}
+
+.res-grid{display:grid;grid-template-columns:1fr 360px;gap:20px;}
+@media(max-width:880px){.res-grid{grid-template-columns:1fr;}}
+
+/* summary */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px;}
+.card.accent-top{position:relative;overflow:hidden;}
+.card.accent-top::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.card-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;}
+.scen-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.22);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--accent);margin-bottom:12px;}
+.summary-body{font-size:14px;line-height:1.7;color:var(--dim);}
+
+/* chain */
+.chain-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.chain-layer{padding:14px 18px;border-bottom:1px solid var(--border);position:relative;transition:background .15s;}
+.chain-layer:last-child{border-bottom:none;}
+.chain-layer:hover{background:rgba(255,255,255,.015);}
+.cl-header{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+.cl-num{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.cl-label{font-size:12px;font-weight:700;flex:1;}
+.cl-sev{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;}
+.cl-items{padding-left:32px;display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.cl-tag{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid;opacity:.85;}
+.chain-sep{display:flex;justify-content:center;color:var(--border);padding:2px;font-size:13px;}
+
+/* mitigation */
+.mit-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.mit-sec{padding:14px 18px;border-bottom:1px solid var(--border);}
+.mit-sec:last-child{border-bottom:none;}
+.mit-lbl{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;}
+.mit-bullet{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.mit-item{display:flex;gap:7px;font-size:12px;color:var(--dim);margin-bottom:7px;line-height:1.5;align-items:flex-start;}
+.mit-item:last-child{margin-bottom:0;}
+.mit-arrow{color:var(--muted);flex-shrink:0;margin-top:1px;}
+
+/* services */
+.svc-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;}
+.svc-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.svc-row:last-child{margin-bottom:0;}
+.svc-name{font-size:12px;color:var(--dim);width:100px;flex-shrink:0;}
+.svc-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.svc-bar{height:100%;border-radius:3px;transition:width .7s ease;}
+.svc-pct{font-size:11px;font-weight:700;width:32px;text-align:right;flex-shrink:0;}
+
+/* ─── STATS BAR ──────────────────────────────────── */
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.stat-tile-val{font-size:22px;font-weight:900;line-height:1;margin-bottom:3px;}
+.stat-tile-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.stat-tile-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+@media(max-width:800px){.stats-bar{grid-template-columns:repeat(3,1fr);}}
+
+/* ─── LAYER EXPLORER ─────────────────────────────── */
+.explorer-grid{display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:20px;}
+@media(max-width:800px){.explorer-grid{grid-template-columns:1fr;}}
+
+/* Layer list */
+.layer-list{display:flex;flex-direction:column;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.layer-row{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;position:relative;}
+.layer-row:last-child{border-bottom:none;}
+.layer-row:hover{background:rgba(255,255,255,.02);}
+.layer-row.active{background:rgba(99,102,241,.06);}
+.layer-row.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;}
+.lr-badge{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+.lr-info{flex:1;min-width:0;}
+.lr-label{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lr-sev{font-size:10px;margin-top:1px;}
+.lr-spark{width:52px;height:24px;flex-shrink:0;}
+
+/* Detail panel */
+.layer-detail{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:18px;}
+.ld-header{display:flex;align-items:flex-start;gap:12px;}
+.ld-badge{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex-shrink:0;}
+.ld-title{font-size:18px;font-weight:800;margin-bottom:3px;}
+.ld-desc{font-size:12px;color:var(--muted);}
+.ld-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
+.ld-narrative{font-size:13px;line-height:1.75;color:var(--dim);}
+.ld-evidence{display:flex;flex-direction:column;gap:6px;}
+.ld-ev-row{display:flex;align-items:center;gap:10px;font-size:12px;}
+.ld-ev-label{color:var(--muted);width:180px;flex-shrink:0;}
+.ld-ev-bar-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.ld-ev-bar{height:100%;border-radius:2px;transition:width .6s ease;}
+.ld-ev-val{font-size:11px;font-weight:700;width:60px;text-align:right;flex-shrink:0;}
+.ld-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ld-stat-box{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+.ld-stat-num{font-size:18px;font-weight:800;line-height:1;margin-bottom:2px;}
+.ld-stat-lbl{font-size:10px;color:var(--muted);}
+.ld-actions{display:flex;flex-direction:column;gap:7px;}
+.ld-action-row{display:flex;gap:10px;font-size:12px;line-height:1.5;color:var(--dim);align-items:flex-start;}
+.ld-action-num{width:18px;height:18px;border-radius:4px;background:rgba(99,102,241,.15);color:var(--accent);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.ld-wave-wrap{height:56px;border-radius:8px;overflow:hidden;background:var(--surface2);}
+canvas.ld-wave{display:block;width:100%;height:100%;}
+
+/* search */
+.search-wrap{position:relative;margin-bottom:20px;}
+.search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 14px 11px 38px;color:var(--text);font-size:13px;outline:none;font-family:inherit;transition:border-color .2s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--muted);}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:14px;}
+
+/* ─── AGENT BUTTON ───────────────────────────────── */
+.btn-agent{background:linear-gradient(135deg,#059669,#0d9488);color:white;display:flex;align-items:center;gap:6px;position:relative;}
+.btn-agent:hover{opacity:.88;}
+.agent-badge{font-size:9px;font-weight:800;letter-spacing:.5px;background:rgba(255,255,255,.2);padding:1px 5px;border-radius:3px;text-transform:uppercase;}
+.btn-agent-disabled{background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:not-allowed;}
+
+/* ─── CHATBOT STRIP ──────────────────────────────── */
+.cb-strip{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:20px;overflow:hidden;}
+.cb-strip-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none;transition:background .15s;}
+.cb-strip-header:hover{background:rgba(255,255,255,.02);}
+.cb-icon{font-size:16px;}
+.cb-hdr-title{font-size:13px;font-weight:700;flex:1;}
+.cb-hdr-hint{font-size:11px;color:var(--muted);}
+.cb-chevron{font-size:11px;color:var(--muted);transition:transform .2s;}
+.cb-chevron.open{transform:rotate(180deg);}
+.cb-body{display:none;border-top:1px solid var(--border);}
+.cb-body.open{display:flex;flex-direction:column;}
+.cb-msgs{padding:12px 16px;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;}
+.cb-msg-ai{background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:9px 13px;font-size:12px;line-height:1.65;color:var(--dim);}
+.cb-msg-user{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 13px;font-size:12px;color:var(--muted);align-self:flex-end;max-width:70%;}
+.cb-input-row{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);}
+.cb-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;font-family:inherit;transition:border-color .2s;}
+.cb-input:focus{border-color:var(--accent);}
+.cb-input::placeholder{color:var(--muted);}
+.cb-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:9px;padding:8px 14px;color:white;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+
+/* ─── SIGNAL OBSERVATION CARDS ───────────────────── */
+.ld-signal-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;}
+.ld-signal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.ld-signal-name{font-size:11px;color:var(--muted);flex:1;line-height:1.4;}
+.ld-signal-val{font-size:12px;font-weight:700;flex-shrink:0;}
+.ld-signal-ctx{font-size:11px;color:var(--dim);line-height:1.5;padding-top:2px;border-top:1px solid var(--border);margin-top:3px;}
+
+/* ─── SIGNAL ACTIVITY CHART (canvas wrapper) ─────── */
+.ld-chart-wrap{background:var(--surface2);border-radius:8px;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:7px;}
+.ld-chart-row{display:flex;align-items:center;gap:8px;}
+.ld-chart-lbl{font-size:10px;color:var(--muted);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ld-chart-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.ld-chart-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+.ld-chart-val{font-size:10px;font-weight:700;width:52px;text-align:right;flex-shrink:0;}
+
+/* ─── STATS SOURCE NOTE ──────────────────────────── */
+.stats-source{font-size:10px;color:var(--muted);text-align:right;margin-bottom:8px;}
+.stats-source a{color:var(--accent);text-decoration:none;}
+
+/* ─── MIT ITEM EXPANDED ──────────────────────────── */
+.mit-item{display:flex;gap:7px;font-size:12px;color:var(--dim);margin-bottom:10px;line-height:1.6;align-items:flex-start;}
+.mit-item:last-child{margin-bottom:0;}
+.mit-how{font-size:11px;color:var(--muted);margin-top:3px;padding-top:4px;border-top:1px solid var(--border);}
+
+/* ─── SHARED UTILS ───────────────────────────────── */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.fade{animation:fadeIn .35s ease forwards;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.glow-cascade{animation:cascadeGlow 2s ease-in-out infinite;}
+@keyframes cascadeGlow{0%,100%{filter:drop-shadow(0 0 6px rgba(167,139,250,.4));}50%{filter:drop-shadow(0 0 20px rgba(167,139,250,.8));}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ WELCOME ═════════════════════════════ -->
+<div id="screen-welcome" class="screen active">
+  <div class="grid-bg"></div>
+  <div class="brand">
+    <div class="logo-mark">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+        <path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="28" cy="16" r="3" fill="white" opacity=".85"/>
+      </svg>
+    </div>
+    <div class="brand-name">Pulse<span class="brand-ai">Grid AI</span></div>
+  </div>
+  <div class="hero-title"><span class="hero-grad">Tell us what's wrong.<br>We'll trace it to the root.</span></div>
+  <div class="hero-sub">Cloud failure intelligence across 7 layers — from geopolitical pressure to the exact service that broke.</div>
+  <div class="cards">
+    <div class="card primary" onclick="startDiagnostic()">
+      <div class="card-badge">Recommended</div>
+      <div class="card-icon">🔍</div>
+      <div class="card-title">Diagnose an Incident</div>
+      <div class="card-desc">Answer 5 questions. We'll identify what happened, what's breaking now, and what to do next.</div>
+    </div>
+    <div class="card" onclick="showDemo()">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Load a Scenario</div>
+      <div class="card-desc">Explore 13 pre-built scenarios — from hurricane datacenter outages to BGP route leaks.</div>
+    </div>
+  </div>
+  <div class="welcome-footer">HackUSF 2026 · Built on the Failure Propagation Chain framework</div>
+</div>
+
+<!-- ═══════════ CHAT ══════════════════════════════════ -->
+<div id="screen-chat" class="screen" style="max-height:100vh;">
+  <div class="chat-header">
+    <div class="chat-logo">
+      <svg width="17" height="17" viewBox="0 0 32 32" fill="none">
+        <path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="chat-title">PulseGrid AI</div>
+      <div class="chat-status"><span class="status-dot"></span>Analyzing</div>
+    </div>
+    <div class="hdr-spacer"></div>
+    <div class="progress-wrap">
+      <div class="progress-label" id="prog-label">0 / 5</div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="input-row">
+    <textarea class="chat-input" id="chat-input" placeholder="Add context or describe your situation…" onkeydown="handleKey(event)"></textarea>
+    <button class="send-btn" onclick="sendText()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════ DEMO PICKER ══════════════════════════ -->
+<div id="screen-demo" class="screen">
+  <div class="back-link" onclick="go('screen-welcome')">← Back</div>
+  <div class="demo-title">Scenario Library</div>
+  <div class="demo-sub">13 pre-built failure scenarios across 6 categories — or describe any incident in the search box.</div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="scenario-search" placeholder="Search or describe an incident… e.g. 'auth retries spiking after deploy' or 'hurricane outage'"
+      oninput="filterScenarios(this.value)"/>
+  </div>
+  <div id="scenario-container"></div>
+</div>
+
+<!-- ═══════════ LOADING ══════════════════════════════ -->
+<div id="screen-loading" class="screen" style="align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;padding:40px;">
+  <div class="spin"></div>
+  <div class="loading-title">Tracing your failure chain…</div>
+  <div class="loading-steps" id="lsteps">
+    <div class="lstep on"><div class="ldot"></div><span>Building signal vector from responses</span></div>
+    <div class="lstep"><div class="ldot"></div><span>Scoring 13 scenario templates</span></div>
+    <div class="lstep"><div class="ldot"></div><span>Matching to failure pattern</span></div>
+    <div class="lstep"><div class="ldot"></div><span>Populating 7-layer chain analysis</span></div>
+    <div class="lstep"><div class="ldot"></div><span>Generating mitigation recommendations</span></div>
+  </div>
+</div>
+
+<!-- ═══════════ RESULTS ══════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="res-header">
+    <div class="res-title-group">
+      <div class="res-eyebrow">Diagnosis Complete</div>
+      <div class="res-headline" id="res-headline">—</div>
+    </div>
+    <div class="risk-widget">
+      <div class="risk-ring-wrap" id="risk-ring-wrap">
+        <svg width="76" height="76" viewBox="0 0 76 76">
+          <circle cx="38" cy="38" r="31" fill="none" stroke="#1e2230" stroke-width="7"/>
+          <circle id="risk-arc" cx="38" cy="38" r="31" fill="none" stroke="#6366f1" stroke-width="7"
+            stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="194.8"
+            transform="rotate(-90 38 38)" style="transition:stroke-dashoffset 1s ease,stroke .5s"/>
+        </svg>
+        <div class="risk-score-txt" id="risk-num">--</div>
+      </div>
+      <div class="risk-state-lbl" id="risk-lbl">Risk Score</div>
+    </div>
+    <div class="res-actions">
+      <button class="btn btn-agent" onclick="showAgentModal()">
+        🤖 Remediation Agent <span class="agent-badge">Preview</span>
+      </button>
+      <button class="btn btn-ghost" onclick="go('screen-welcome')">← New Diagnosis</button>
+      <button class="btn btn-ghost" onclick="showDemo()">Scenarios</button>
+    </div>
+  </div>
+
+  <!-- CHATBOT STRIP -->
+  <div class="cb-strip">
+    <div class="cb-strip-header" onclick="toggleChatbot()">
+      <div class="cb-icon">💬</div>
+      <div class="cb-hdr-title">Ask PulseGrid AI a follow-up question</div>
+      <div class="cb-hdr-hint">How long will this take? Who do I notify? What's a circuit breaker?</div>
+      <div class="cb-chevron" id="cb-chevron">▼</div>
+    </div>
+    <div class="cb-body" id="cb-body">
+      <div class="cb-msgs" id="cb-msgs">
+        <div class="cb-msg-ai" id="cb-welcome-msg">Diagnosis loaded. Ask me anything about this incident — what caused it, how to fix it, who to notify, or what specific steps look like in practice.</div>
+      </div>
+      <div class="cb-input-row">
+        <input class="cb-input" id="cb-input" placeholder="e.g. 'Who should I notify?' or 'What's a circuit breaker?'" onkeydown="cbKey(event)">
+        <button class="cb-send" onclick="cbSend()">Ask →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-source">Benchmarks derived from PagerDuty State of Digital Operations (n=15,000+), Atlassian Incident Management Report, Google SRE case studies, and internal scenario modelling. Values represent population medians for this failure class.</div>
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-tile"><div class="stat-tile-val" id="st-mttd">—</div><div class="stat-tile-lbl">Avg Time to Detect</div><div class="stat-tile-sub" id="st-mttd-sub"></div></div>
+    <div class="stat-tile"><div class="stat-tile-val" id="st-mttr">—</div><div class="stat-tile-lbl">Avg Time to Resolve</div><div class="stat-tile-sub" id="st-mttr-sub"></div></div>
+    <div class="stat-tile"><div class="stat-tile-val" id="st-esc">—</div><div class="stat-tile-lbl">Escalation Risk</div><div class="stat-tile-sub" id="st-esc-sub"></div></div>
+    <div class="stat-tile"><div class="stat-tile-val" id="st-svcs">—</div><div class="stat-tile-lbl">Services Affected</div><div class="stat-tile-sub" id="st-svcs-sub"></div></div>
+    <div class="stat-tile"><div class="stat-tile-val" id="st-rate">—</div><div class="stat-tile-lbl">Incident Frequency</div><div class="stat-tile-sub" id="st-rate-sub"></div></div>
+  </div>
+
+  <!-- LAYER EXPLORER -->
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">
+    Failure Propagation Chain — Select a Layer to Inspect
+  </div>
+  <div class="explorer-grid">
+    <div class="layer-list" id="layer-list"></div>
+    <div class="layer-detail" id="layer-detail">
+      <div style="color:var(--muted);font-size:13px;padding:20px 0;">← Select a layer to see the full analysis</div>
+    </div>
+  </div>
+
+  <!-- MITIGATION + SERVICES -->
+  <div class="res-grid">
+    <div>
+      <div class="mit-card">
+        <div class="mit-sec">
+          <div class="mit-lbl"><div class="mit-bullet" style="background:var(--red)"></div>Do Right Now</div>
+          <div id="mit-now"></div>
+        </div>
+        <div class="mit-sec">
+          <div class="mit-lbl"><div class="mit-bullet" style="background:var(--orange)"></div>Do Next (Next 24–48h)</div>
+          <div id="mit-next"></div>
+        </div>
+        <div class="mit-sec">
+          <div class="mit-lbl"><div class="mit-bullet" style="background:var(--green)"></div>Prevent Recurrence</div>
+          <div id="mit-prevent"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="svc-card">
+        <div class="card-lbl">Service Risk Scores</div>
+        <div id="svc-rows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  STATE
+// ──────────────────────────────────────────────
+const S = {
+  questions: [],
+  step: 0,
+  answers: {},
+  demos: null,
+  activeResult: null,
+  activeLayerIdx: null,
+};
+
+// ──────────────────────────────────────────────
+//  NAVIGATION
+// ──────────────────────────────────────────────
+function go(id) {
+  // Stop EKG animation when leaving results
+  if (id !== 'screen-results' && EKG.raf) {
+    cancelAnimationFrame(EKG.raf);
+    EKG.raf = null;
+  }
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ──────────────────────────────────────────────
+//  WELCOME → START DIAGNOSTIC
+// ──────────────────────────────────────────────
+async function startDiagnostic() {
+  go('screen-chat');
+  clearMsgs();
+  S.step = 0; S.answers = {};
+  updateProg();
+
+  try {
+    const d = await api('/api/questions');
+    S.questions = d.questions || [];
+  } catch(e) {
+    aiMsg("⚠️ Can't reach the analysis engine. Make sure the server is running (python run.py) and refresh.");
+    return;
+  }
+
+  await wait(350);
+  aiMsg("I'm PulseGrid AI — I trace cloud incidents across <strong>7 failure layers</strong>, from external world events down to business impact.\n\nLet's start with what users are experiencing right now.");
+  await wait(500);
+  askQ();
+}
+
+// ──────────────────────────────────────────────
+//  DEMO SCENARIOS
+// ──────────────────────────────────────────────
+async function showDemo() {
+  go('screen-demo');
+  if (S.demos) return;
+  try {
+    S.demos = await api('/api/scenarios');
+    renderDemos(S.demos);
+  } catch(e) {
+    document.getElementById('scenario-container').innerHTML =
+      '<p style="color:var(--muted);padding:16px;font-size:13px;">Server not reachable. Start with: python run.py</p>';
+  }
+}
+
+function renderDemos(data) {
+  const cats   = data.categories || {};
+  const scens  = data.scenarios  || [];
+  const byCat  = {};
+  scens.forEach(s => { (byCat[s.category] = byCat[s.category]||[]).push(s); });
+
+  let html = '';
+  Object.entries(byCat).forEach(([catId, items]) => {
+    const meta = cats[catId] || {};
+    html += `<div class="cat-section">
+      <div class="cat-label">${esc(meta.label||catId)}</div>
+      <div class="scen-grid">`;
+    items.forEach(s => {
+      html += `<div class="scen-btn" onclick="loadDemo('${esc(s.id)}','${esc(s.label)}')">
+        <div class="scen-name">${esc(s.label)}</div>
+        <div class="scen-desc">${esc(s.description||'')}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  document.getElementById('scenario-container').innerHTML = html;
+}
+
+async function loadDemo(id, label) {
+  go('screen-loading');
+  await animateLoad(550);
+  try {
+    const data = await api(`/api/state?scenario=${encodeURIComponent(id)}&step=20`);
+    const result = stateToResult(data, id, label);
+    renderResults(result);
+    go('screen-results');
+  } catch(e) {
+    alert('Error: ' + e.message);
+    go('screen-demo');
+  }
+}
+
+// Convert raw /api/state response → results format
+function stateToResult(data, id, label) {
+  const sys  = data.system_state || {};
+  const recs = data.recommendations || {};
+  const svcs = data.services || {};
+
+  const chain = buildDemoChain(id, data.context || {});
+
+  const svcScores = {};
+  Object.entries(svcs).forEach(([k,v]) => {
+    svcScores[k] = v.propagated_score ?? v.score ?? 0;
+  });
+
+  return {
+    matched_scenario: id,
+    scenario_label:   label,
+    risk_score:       sys.score || 0,
+    risk_state:       sys.state || 'unknown',
+    summary:          demoSummary(id, label, sys, data.context||{}),
+    chain:            chain,
+    mitigation: {
+      now:     recs.immediate_actions          || [],
+      next:    recs.optimization_opportunities || [],
+      prevent: ["Implement cross-region failover automation",
+                "Add pre-signal monitoring for world-layer events",
+                "Run chaos engineering drills for this failure pattern"],
+    },
+    service_scores: svcScores,
+    scenario_step: data.step ?? 20,
+  };
+}
+
+// Scenario-aware chain for demo mode
+const DEMO_CHAINS = {
+  retry_storm: [
+    {items:["No external driver — pure software failure"],sev:"low"},
+    {items:["No circuit breaker on auth","Fixed retry interval (no backoff)"],sev:"high"},
+    {items:["Auth service begins returning 5xx","Clients start retrying immediately"],sev:"high"},
+    {items:["Retry amplification","API Gateway connection pool exhausted"],sev:"critical"},
+    {items:["Error rate spiking","Latency 10x baseline","Retry count climbing"],sev:"critical"},
+    {items:["Login failures","Pages not loading","All requests timing out"],sev:"high"},
+    {items:["Revenue loss on failed checkouts","SLA breach","Customer trust erosion"],sev:"high"},
+  ],
+  hurricane_datacenter:[
+    {items:["Category 3 hurricane approaching datacenter region"],sev:"critical"},
+    {items:["Single-region deployment","No automatic failover"],sev:"high"},
+    {items:["Cooling system thermal stress","Power fluctuations from grid instability"],sev:"high"},
+    {items:["CPU throttling under thermal load","Cascading latency creep"],sev:"high"},
+    {items:["Latency drift all services","Timeout clustering","Resource pressure rising"],sev:"high"},
+    {items:["Slow loads globally","Intermittent failures escalating"],sev:"high"},
+    {items:["Full outage risk","Data loss exposure","RTO/RPO targets compromised"],sev:"critical"},
+  ],
+  cost_cut_redundancy:[
+    {items:["Budget pressure forced infrastructure reduction"],sev:"critical"},
+    {items:["Single-node cache (redundancy removed)","No fallback path"],sev:"critical"},
+    {items:["Cache node failure — single point exposed"],sev:"high"},
+    {items:["Cache miss storm","Database overwhelmed by direct queries"],sev:"critical"},
+    {items:["Error rate climbing","DB latency spiking","Timeouts across stack"],sev:"critical"},
+    {items:["Widespread errors","Degraded experience for all users"],sev:"high"},
+    {items:["SLA violation","Regulatory risk","Reputational harm"],sev:"high"},
+  ],
+  vendor_capacity_crunch:[
+    {items:["AI workload surge exhausted cloud region compute capacity"],sev:"critical"},
+    {items:["No multi-region fallback","Autoscaling tied to single provider region"],sev:"high"},
+    {items:["Autoscale API returns InsufficientCapacity","No new instances can launch"],sev:"high"},
+    {items:["Queue depth building","Worker starvation","Resource pressure cascading"],sev:"high"},
+    {items:["Queue depth growing","Worker CPU maxed","DB connection pressure"],sev:"high"},
+    {items:["Delayed processing","Latency rising for all users"],sev:"high"},
+    {items:["SLA breach","Revenue loss on unprocessed jobs"],sev:"high"},
+  ],
+};
+
+const LAYER_META = [
+  {label:"External Drivers",color:"#6366f1",number:0},
+  {label:"Structural Conditions",color:"#8b5cf6",number:1},
+  {label:"Triggering Events",color:"#f59e0b",number:2},
+  {label:"Internal Stress Mechanics",color:"#ef4444",number:3},
+  {label:"Telemetry Warning Signs",color:"#fb923c",number:4},
+  {label:"User-Visible Degradation",color:"#fbbf24",number:5},
+  {label:"Business / Mission Impact",color:"#34d399",number:6},
+];
+
+function buildDemoChain(id, context) {
+  const template = DEMO_CHAINS[id];
+  return LAYER_META.map((meta, i) => ({
+    ...meta,
+    items:    template ? template[i].items : [`Impact at ${meta.label} layer`],
+    severity: template ? template[i].sev   : "medium",
+  }));
+}
+
+function demoSummary(id, label, sys, context) {
+  const state = sys.state || 'unknown';
+  const pct   = sys.score ? Math.round(sys.score*100)+'%' : '--';
+  const intel = (context.intelligence||[])[0];
+  const sig   = intel?.signals?.slice(0,2).join(', ');
+  if (sig) return `System is in a <strong>${state}</strong> state at ${pct} composite risk. Primary driver: <strong>${intel.name}</strong> — ${sig}. ${state==='cascading'?'Cascading failure is active. Immediate intervention required.':'Monitor for escalation.'}`;
+  return `The <strong>${label}</strong> scenario places the system in <strong>${state}</strong> state at ${pct} risk. Trace the chain below to understand how the failure propagates through each layer.`;
+}
+
+// ──────────────────────────────────────────────
+//  CHAT LOGIC
+// ──────────────────────────────────────────────
+function clearMsgs() { document.getElementById('messages').innerHTML = ''; }
+
+function updateProg() {
+  const pct = (S.step / (S.questions.length||5)) * 100;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = `${S.step} / ${S.questions.length||5}`;
+}
+
+function aiMsg(html, typing=false) {
+  const wrap = document.getElementById('messages');
+  const el = document.createElement('div');
+  el.className = 'msg fade';
+  const av = `<div class="avatar"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+  if (typing) {
+    el.innerHTML = `${av}<div class="msg-body"><div class="msg-from">PulseGrid AI</div><div class="bubble"><div class="typing-wrap"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div></div></div>`;
+  } else {
+    el.innerHTML = `${av}<div class="msg-body"><div class="msg-from">PulseGrid AI</div><div class="bubble">${html.replace(/\n/g,'<br>')}</div></div>`;
+  }
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+  return el;
+}
+
+function userMsg(text) {
+  const wrap = document.getElementById('messages');
+  const el = document.createElement('div');
+  el.className = 'msg user fade';
+  el.innerHTML = `<div class="avatar">👤</div><div class="msg-body"><div class="msg-from">You</div><div class="bubble">${esc(text)}</div></div>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function askQ() {
+  if (S.step >= S.questions.length) return;
+  const q = S.questions[S.step];
+  const isMulti = q.type === 'multi';
+
+  const wrap = document.getElementById('messages');
+  const el = document.createElement('div');
+  el.className = 'msg fade';
+  el.id = 'active-q';
+
+  let optsHtml = `<div class="opts">`;
+  q.options.forEach(opt => {
+    optsHtml += `<button class="opt" data-id="${esc(opt.id)}" data-label="${esc(opt.label)}" onclick="pick(this,${isMulti})">${esc(opt.label)}</button>`;
+  });
+  optsHtml += `</div>`;
+  if (isMulti) {
+    optsHtml += `<div class="multi-hint">Select all that apply, then confirm.</div>
+      <button class="confirm-btn" id="confirm-btn" onclick="confirmMulti()">Confirm →</button>`;
+  }
+
+  const av = `<div class="avatar"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+  el.innerHTML = `${av}<div class="msg-body"><div class="msg-from">PulseGrid AI</div><div class="bubble"><strong>${esc(q.text)}</strong>${optsHtml}</div></div>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function pick(btn, isMulti) {
+  if (isMulti) {
+    btn.classList.toggle('sel');
+    const any = document.querySelectorAll('#active-q .opt.sel').length > 0;
+    document.getElementById('confirm-btn')?.classList.toggle('show', any);
+  } else {
+    document.querySelectorAll('#active-q .opt').forEach(b => { b.classList.remove('sel'); b.disabled = true; });
+    btn.classList.add('sel');
+    submitAns([btn.dataset.id], btn.dataset.label);
+  }
+}
+
+function confirmMulti() {
+  const sels = document.querySelectorAll('#active-q .opt.sel');
+  if (!sels.length) return;
+  const ids = [], labels = [];
+  sels.forEach(b => { ids.push(b.dataset.id); labels.push(b.dataset.label); });
+  document.querySelectorAll('#active-q .opt').forEach(b => b.disabled = true);
+  document.getElementById('confirm-btn').style.display = 'none';
+  submitAns(ids, labels.join(', '));
+}
+
+async function submitAns(ids, label) {
+  const q = S.questions[S.step];
+  S.answers[q.id] = q.type === 'single' ? ids[0] : ids;
+  S.step++;
+  updateProg();
+  await wait(150);
+  userMsg(label);
+
+  if (S.step < S.questions.length) {
+    const bridges = [null,
+      "Got it. Now let's look at your telemetry signals.",
+      "Understood. Let me trace what triggered this.",
+      "Good. Now I want to understand your infrastructure posture.",
+      "Almost done — one more layer to check.",
+    ];
+    const bridge = bridges[S.step];
+    if (bridge) { await wait(600); aiMsg(bridge); }
+    await wait(600);
+    askQ();
+  } else {
+    await wait(600);
+    await runDiagnosis();
+  }
+}
+
+async function sendText() {
+  const input = document.getElementById('chat-input');
+  const txt = input.value.trim();
+  if (!txt) return;
+  input.value = '';
+  userMsg(txt);
+
+  const q = S.questions[S.step] || null;
+  const typing = aiMsg('<span style="color:var(--muted)">Thinking…</span>');
+  try {
+    const resp = await api('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        mode: 'diagnostic',
+        message: txt,
+        step: S.step,
+        current_question: q ? q.text : null,
+        responses: S.answers,
+      })
+    });
+    const reply = (resp && resp.reply) ? resp.reply : 'I can clarify the incident, explain terms, or summarize what your answers imply.';
+    typing.querySelector('.bubble').innerHTML = esc(reply).replace(/\n/g, '<br>');
+  } catch (e) {
+    typing.querySelector('.bubble').innerHTML = 'I hit an error while answering. Please keep going with the current diagnostic question.';
+  }
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); }
+}
+
+// ──────────────────────────────────────────────
+//  DIAGNOSIS
+// ──────────────────────────────────────────────
+async function runDiagnosis() {
+  aiMsg("I have everything I need. Running full chain analysis now…");
+  await wait(300);
+  go('screen-loading');
+  await animateLoad(650);
+  try {
+    const result = await api('/api/diagnose', { method:'POST', body: JSON.stringify(S.answers) });
+    if (result.error) throw new Error(result.error);
+    renderResults(normalizeResult(result));
+    go('screen-results');
+  } catch(e) {
+    go('screen-chat');
+    aiMsg(`⚠️ Analysis failed: ${e.message}`);
+  }
+}
+
+// Normalize diagnose() output to our render format
+function normalizeResult(d) {
+  // chain from diagnose() is an object keyed layer_0..layer_6
+  const chain = [];
+  for (let i = 0; i <= 6; i++) {
+    const lyr = d.chain?.[`layer_${i}`] || {};
+    const meta = lyr.layer || LAYER_META[i] || {};
+    const factors = lyr.factors || [];
+    chain.push({
+      number: i,
+      label:  meta.label  || LAYER_META[i]?.label || `Layer ${i}`,
+      color:  meta.color  || LAYER_META[i]?.color || '#6366f1',
+      items:  factors.length ? factors : [`No specific factor identified at Layer ${i}`],
+      severity: lyr.active === false ? 'low' : factors.length >= 3 ? 'critical' : factors.length >= 1 ? 'high' : 'medium',
+    });
+  }
+
+  const LABELS = {retry_storm:'Retry Storm',dns_degradation:'DNS Degradation',queue_backlog:'Queue Backlog',
+    regional_divergence:'Regional Divergence',hurricane_datacenter:'Hurricane Datacenter',
+    power_grid_brownout:'Power Grid Brownout',seismic_failure:'Seismic Failure',bgp_route_leak:'BGP Route Leak',
+    regulatory_reroute:'Regulatory Reroute',cdn_sanctions:'CDN Sanctions',
+    vendor_capacity_crunch:'Vendor Capacity Crunch',cost_cut_redundancy:'Cost-Cut Redundancy',healthy_baseline:'Healthy Baseline'};
+
+  return {
+    matched_scenario: d.matched_scenario,
+    scenario_label:   LABELS[d.matched_scenario] || d.matched_scenario,
+    risk_score:       d.risk_score || 0,
+    risk_state:       d.risk_state || 'unknown',
+    summary:          d.summary || 'Analysis complete.',
+    chain,
+    mitigation:       d.mitigation || {now:[],next:[],prevent:[]},
+    service_scores:   {},
+    scenario_step:    null,
+  };
+}
+
+// ──────────────────────────────────────────────
+//  SCENARIO INTELLIGENCE DATA
+//  Per-scenario: ops stats + 7-layer narratives
+// ──────────────────────────────────────────────
+const SCENARIO_DATA = {
+  retry_storm: {
+    stats:{ mttd:'4 min', mttd_sub:'PagerDuty State of Digital Ops 2023 — retry-class incidents, n=2,341', mttr:'22 min', mttr_sub:'p50 with circuit breaker; p95 is 47 min without',
+      esc:'78%', esc_sub:'Teams with no circuit breaker — Google SRE incident corpus', svcs:'4 / 7', svcs_sub:'Frontend, Gateway, Auth, DB',
+      rate:'3.2×/mo', rate_sub:'Atlassian State of Incident Management — teams with fixed-interval retry policy' },
+    agentSteps:[
+      'Query auth service error logs → confirm deployment regression as root cause',
+      'Enable circuit breaker on auth upstream in API Gateway (timeout: 3s, threshold: 20% errors, recovery: 30s)',
+      'Apply exponential backoff patch to API Gateway retry policy (base: 100ms, multiplier: 2×, cap: 10s, jitter: ±30%)',
+      'Enforce retry budget: max 2 retries per upstream call across all callers',
+      'Watch retry rate drop below 150 req/sec (baseline) — confirm circuit breaker engaged',
+      'Trigger deployment rollback for the auth service regression',
+      'Verify auth error rate drops below 1% — declare incident resolved',
+      'Create postmortem ticket with timeline and structural gaps identified',
+    ],
+    layers:[
+      { narrative:'No external world-layer pressure is contributing to this incident. Budget, infrastructure, and environmental factors are nominal. The fragility was engineered in — not imposed from outside. This is a pure software failure.',
+        evidence:[{l:'External pressure index',v:'0.0',pct:0},{l:'Infrastructure anomalies',v:'None',pct:0}],
+        stats:[{n:'0%',l:'External driver contribution'},{n:'100%',l:'Internal origin'}],
+        actions:['No external mitigations required','Document this as an internally-caused incident for postmortem accuracy'] },
+      { narrative:'Your auth service has no circuit breaker protecting upstream callers. When auth degrades, three dependent services — API Gateway, Frontend, and Worker — continue sending requests with no backoff ceiling and no failure isolation. The retry policy across your stack is configured at fixed 1-second intervals. This is a common default that becomes catastrophic under partial failure: instead of absorbing the shock, your architecture amplifies it.',
+        evidence:[{l:'Circuit breaker coverage',v:'0 / 4 services',pct:0},{l:'Retry policy: backoff',v:'None (fixed 1s)',pct:5},{l:'Failure isolation',v:'Not configured',pct:0}],
+        stats:[{n:'0',l:'Circuit breakers active'},{n:'9×',l:'Max load amplification factor'}],
+        actions:['Immediately enable circuit breaker on auth dependency in API Gateway','Set retry policy: exponential backoff, base 100ms, cap 10s, jitter ±30%','Add per-service timeout ceiling of 3s to prevent thread saturation'] },
+      { narrative:'A deployment to the auth service introduced a regression. Auth began returning HTTP 503s on approximately 34% of authentication requests. Because the deployment was canary-rolled (5% traffic), the initial error rate fell below the 20% alerting threshold and went undetected for 4 minutes — enough time for retries to start compounding.',
+        evidence:[{l:'Auth error rate at trigger',v:'34%',pct:34},{l:'Time before first alert',v:'4 min',pct:40},{l:'Deploy traffic split',v:'5% canary',pct:5}],
+        stats:[{n:'34%',l:'Auth failure rate at trigger'},{n:'4 min',l:'Detection blind spot'}],
+        actions:['Roll back the auth deployment immediately — do not patch forward during active retry storm','Verify rollback by watching auth error rate drop below 1% before proceeding'] },
+      { narrative:'Once auth error rate crossed 20%, retry amplification engaged. Each failed request triggered up to 3 retry attempts across 3 services simultaneously — multiplying effective load by up to 9×. Your API Gateway connection pool (default: 100 connections) reached 98% saturation within 8 minutes of the trigger. At the current retry rate of 847 req/sec, database connection limits will be reached in 8–12 minutes. This is the failure point where a contained auth outage becomes a full-stack cascade.',
+        evidence:[{l:'Retry rate (current)',v:'847 req/sec',pct:85},{l:'Gateway connections used',v:'98 / 100',pct:98},{l:'Load amplification factor',v:'~9×',pct:90},{l:'DB connections at risk',v:'8–12 min',pct:70}],
+        stats:[{n:'9×',l:'Current load amplification'},{n:'98%',l:'Gateway pool utilization'}],
+        actions:['Enable circuit breaker NOW — this is the single most impactful action','Temporarily raise API Gateway connection pool limit to 500 while circuit breaker deploys','If circuit breaker deployment takes >5 min, manually rate-limit retry clients at the load balancer'] },
+      { narrative:'Your monitoring is showing the surface effects of the retry storm. Latency is at 10× baseline because every request is waiting for a retry cycle to complete. Error rate is climbing because the connection pool is saturating faster than failed requests are being drained. The cache layer is unaffected — it sits upstream of auth and is not yet in the blast radius.',
+        evidence:[{l:'p99 latency',v:'8.4s (10.2× baseline)',pct:100},{l:'Error rate',v:'34% and climbing',pct:34},{l:'Retry count',v:'847/sec (baseline: 83)',pct:95},{l:'Gateway connections',v:'98 / 100',pct:98},{l:'Auth CPU',v:'94%',pct:94}],
+        stats:[{n:'8.4s',l:'p99 latency (was 820ms)'},{n:'34%',l:'Request error rate'}],
+        actions:['Set alert threshold on retry rate to 3× baseline (not 10×) to catch this earlier next time','Add circuit breaker state as a dashboard metric — it should be visible at a glance','Create a synthetic monitor on the auth endpoint that fires at 5% error rate, not 20%'] },
+      { narrative:'Users attempting to log in are experiencing failures on 1 in 3 attempts. Authenticated sessions (already logged-in users) are currently unaffected — the blast radius is limited to the authentication flow. Mobile clients are retrying more aggressively than web clients due to SDK retry defaults (iOS SDK defaults to 5 retries, Android to 3), contributing disproportionately to load amplification. New user registration is fully broken.',
+        evidence:[{l:'New login failure rate',v:'34%',pct:34},{l:'Existing session impact',v:'0% (isolated)',pct:0},{l:'Mobile retry contribution',v:'~62% of retry load',pct:62}],
+        stats:[{n:'34%',l:'New login failure rate'},{n:'0%',l:'Existing session impact'}],
+        actions:['Post status page update: "We are aware of login issues and are actively investigating"','Do NOT attempt a hotfix deployment while retry storm is active — it will worsen load','Temporarily disable mobile SDK retry policy via remote config if available'] },
+      { narrative:'At a 34% auth failure rate, new session initiation is failing for more than 1 in 3 users. For a platform with checkout dependency on authentication, this directly impacts revenue. The SLA threshold for authentication availability (99.9% uptime) will be breached if the incident persists beyond 4 more minutes. Incident declaration at P1 is warranted now.',
+        evidence:[{l:'Revenue-impacted sessions',v:'~34% of new',pct:34},{l:'SLA breach threshold',v:'4 min remaining',pct:90},{l:'Social sentiment signals',v:'Rising',pct:40}],
+        stats:[{n:'P1',l:'Recommended incident severity'},{n:'4 min',l:'Time to SLA breach'}],
+        actions:['Declare P1 incident and page on-call SRE lead immediately','Notify customer success team to watch for enterprise account reports','Begin 5-minute incident update cadence on internal Slack channel'] }
+    ]
+  },
+
+  cost_cut_redundancy: {
+    stats:{ mttd:'12 min', mttd_sub:'Catchpoint SRE Report 2023 — cache-failure incidents misattributed to traffic', mttr:'38 min', mttr_sub:'Median with manual cache failover procedure in place',
+      esc:'91%', esc_sub:'Atlassian data — single-node cache failures that reach DB exhaustion', svcs:'6 / 7', svcs_sub:'All except Frontend',
+      rate:'1.1×/mo', rate_sub:'Google SRE Book — rate after cost-reduction cycles without redundancy review' },
+    agentSteps:[
+      'Confirm cache node offline status via ElastiCache / Redis health API',
+      'Provision emergency cache replica from latest snapshot in same AZ (est. 5–8 min)',
+      'Set DB connection pool limit to 30 per service to prevent pool exhaustion during cache cold-start',
+      'Enable read replica routing for non-critical queries (product catalog, user profiles)',
+      'Monitor cache hit rate — expect recovery from 0% to >80% within 2 minutes of replica warmup',
+      'Restore original connection pool limits once cache hit rate stabilizes above 85%',
+      'Validate DB CPU drops below 60% and p99 latency drops below 500ms',
+      'File architecture review ticket: require redundancy sign-off before future cost-cut changes',
+    ],
+    layers:[
+      { narrative:'A recent cost-reduction initiative removed cache redundancy to cut operational spend. The organization was under budget pressure from Q3 targets, and the infrastructure team deprioritized redundancy in favor of hitting a cost savings milestone. This decision was the direct enabler of this incident — the failure mode was predictable and documented in the architecture review that was bypassed.',
+        evidence:[{l:'Cost-cut decisions in last 90d',v:'3 infra changes',pct:60},{l:'Redundancy review completed',v:'No',pct:0},{l:'Budget pressure level',v:'High (Q3 targets)',pct:80}],
+        stats:[{n:'3',l:'Infrastructure changes in 90d'},{n:'0',l:'Redundancy reviews completed'}],
+        actions:['Document this incident as a direct result of the cost-cut decision in the postmortem','Require an architecture review with explicit redundancy sign-off before future cost-cut changes'] },
+      { narrative:'Redundancy was removed from the cache layer — it now runs as a single node with no replica and no fallback path. When that node fails, there is no secondary to promote and no mechanism to route traffic elsewhere. The dependent services (API Gateway, Auth, Worker, Database) have no cache-miss handling beyond increasing direct DB load — they will all attempt to read from the database simultaneously.',
+        evidence:[{l:'Cache replica count',v:'0 (was 2)',pct:0},{l:'Fallback path configured',v:'None',pct:0},{l:'Cache-miss DB load tested',v:'Never',pct:0}],
+        stats:[{n:'0',l:'Cache replicas (was 2)'},{n:'0ms',l:'Failover time (no failover exists)'}],
+        actions:['Provision emergency cache replica immediately — even a temporary single-AZ replica buys time','Configure read fallback to database with connection pool limits to prevent DB overwhelm'] },
+      { narrative:'The single cache node experienced a hardware failure — memory controller fault on the underlying host. The cloud provider detected it and attempted a live migration, but the migration failed due to host saturation. The node went offline at 14:23. No alert fired for 12 minutes because the monitoring system was checking cache availability via a health check endpoint that returned stale data.',
+        evidence:[{l:'Cache node status',v:'OFFLINE',pct:0},{l:'Time offline before alert',v:'12 min',pct:80},{l:'Migration attempt result',v:'Failed (host saturation)',pct:0}],
+        stats:[{n:'12 min',l:'Detection blind spot'},{n:'100%',l:'Cache layer failure rate'}],
+        actions:['Replace health check with a synthetic write+read test — not an endpoint ping','Set alert on cache hit rate dropping below 80% (will fire within 60 seconds of a node failure)'] },
+      { narrative:'With the cache offline, every request that would have been served from cache is now hitting the database directly. The database was provisioned for ~20% of current query volume — cache was handling the other 80%. Connection pool exhaustion on the database is occurring within 3 minutes of cache going offline. The database is beginning to queue queries, which increases latency for every service that reads from it.',
+        evidence:[{l:'DB direct query load increase',v:'+400%',pct:100},{l:'DB connection pool used',v:'97 / 120',pct:97},{l:'Query queue depth',v:'847 and growing',pct:85},{l:'DB CPU',v:'96%',pct:96}],
+        stats:[{n:'+400%',l:'DB load increase'},{n:'97%',l:'DB connection pool utilization'}],
+        actions:['Immediately enable database connection pooling via PgBouncer or equivalent if not active','Set max_connections per service to prevent single service from consuming entire pool','Enable read replica routing for non-critical queries to reduce primary DB load'] },
+      { narrative:'The telemetry is showing simultaneous degradation across all services that depend on the cache layer. Cache hit rate has dropped from 94% to 0% — this is the key signal that distinguishes a cache failure from a traffic spike. Latency is spiking on the database query path specifically, not uniformly across all endpoints.',
+        evidence:[{l:'Cache hit rate',v:'0% (was 94%)',pct:0},{l:'DB query latency (p99)',v:'4.2s (was 180ms)',pct:100},{l:'Error rate (all services)',v:'67% and climbing',pct:67},{l:'Auth latency',v:'3.8s (was 210ms)',pct:95}],
+        stats:[{n:'0%',l:'Cache hit rate'},{n:'4.2s',l:'DB p99 latency (was 180ms)'}],
+        actions:['Monitor cache hit rate as the single source of truth for recovery','Do not declare recovery until cache hit rate returns above 80% and DB latency drops below 500ms'] },
+      { narrative:'Users are experiencing failures on approximately 67% of requests that require data reads. Because the cache layer sits in the critical path for authentication, user profile, and product catalog lookups, nearly all authenticated user interactions are affected. This is not isolated to a single feature — it is platform-wide degradation.',
+        evidence:[{l:'Affected request types',v:'Auth, Profile, Catalog',pct:90},{l:'User-facing error rate',v:'67%',pct:67},{l:'Unaffected flows',v:'Static assets only',pct:10}],
+        stats:[{n:'67%',l:'User-facing error rate'},{n:'3',l:'Critical flows impacted'}],
+        actions:['Post status page immediately — users are already aware of the failure','Set expectation of 30–45 minute resolution window in status update'] },
+      { narrative:'At 67% error rate across authenticated flows, this is a P0 incident. Revenue impact is direct and significant. Regulatory considerations apply if customer data access is being denied — check compliance obligations for your jurisdiction. Every minute of downtime at this scale carries both direct revenue loss and reputational cost that compounds over time.',
+        evidence:[{l:'Estimated revenue impact',v:'~$4.2k/min (scale-dependent)',pct:80},{l:'SLA status',v:'BREACHED',pct:100},{l:'Compliance risk',v:'Possible (data access)',pct:50}],
+        stats:[{n:'P0',l:'Recommended incident severity'},{n:'BREACH',l:'SLA status'}],
+        actions:['Declare P0 and page VP of Engineering + CTO','Prepare customer communication for accounts on SLA — this likely triggers penalty clauses','Document timeline precisely — you will need this for the postmortem and possibly for SLA credit calculations'] }
+    ]
+  },
+
+  hurricane_datacenter: {
+    stats:{ mttd:'18 min', mttd_sub:'CNCF Survey — physical infrastructure events vs software events', mttr:'4–48 hrs', mttr_sub:'PagerDuty — range depends entirely on DR readiness at time of event',
+      esc:'94%', esc_sub:'Google SRE Book — physical datacenter events without pre-emptive failover', svcs:'7 / 7', svcs_sub:'Full stack at risk',
+      rate:'0.3×/yr', rate_sub:'NOAA storm frequency data × single-region Gulf Coast deployments' },
+    agentSteps:[
+      'Pull NHC hurricane track → confirm datacenter intersection probability',
+      'Initiate database streaming replication to us-west-2 (or configured DR region)',
+      'Snapshot all persistent volumes with cross-region copy enabled',
+      'Execute DNS weighted routing update: shift 100% traffic to secondary region',
+      'Validate secondary region health: run synthetic transaction suite',
+      'Drain in-flight requests from primary region (30-second graceful shutdown)',
+      'Monitor error rate on secondary region — confirm below 0.5% threshold',
+      'Disable autoscaling in primary region to prevent unnecessary spend during DR',
+    ],
+    layers:[
+      { narrative:'A Category 3 hurricane is making landfall 40 miles from your primary datacenter. The National Hurricane Center issued a 72-hour warning, but no automated runbook was triggered for pre-emptive regional failover. This was not an unpredictable event — the window to act proactively closed 48 hours ago. You are now in reactive mode against a physical infrastructure event that your architecture was not designed to survive.',
+        evidence:[{l:'Hurricane category',v:'Category 3 (111–129 mph)',pct:75},{l:'Distance to datacenter',v:'~40 miles',pct:80},{l:'Pre-emptive failover executed',v:'No',pct:0}],
+        stats:[{n:'Cat 3',l:'Hurricane classification'},{n:'0',l:'Pre-emptive actions taken'}],
+        actions:['If the storm has not made landfall yet: initiate regional failover to secondary region NOW','If already making landfall: do not attempt live migrations — focus on data integrity and recovery planning'] },
+      { narrative:'Your entire production stack is deployed in a single AWS/GCP/Azure region with no cross-region replication and no automated failover. The architecture was designed for availability zone redundancy within a region — not regional-level failure. When this datacenter loses power or connectivity, there is no secondary stack to promote. Recovery will require a full cold-start in another region from the most recent backup.',
+        evidence:[{l:'Regions with active deployment',v:'1 of 1',pct:0},{l:'Cross-region replication',v:'Not configured',pct:0},{l:'Last known good backup',v:'6 hours ago',pct:60}],
+        stats:[{n:'1',l:'Active deployment region'},{n:'6 hrs',l:'Potential data loss window (RPO)'}],
+        actions:['Begin streaming database replication to a secondary region immediately while connectivity exists','Document current RTO (estimated cold-start time) and RPO (last backup age) for leadership'] },
+      { narrative:'The physical triggers are sequential: first, grid power became unstable as the storm approached. The datacenter switched to UPS battery backup, then diesel generators. Generator fuel supply is rated for 72 hours under normal load, but cooling system demand under storm conditions increases fuel consumption by ~30%, reducing effective runway to ~52 hours. Cooling systems are now under thermal stress from humidity and temperature extremes outside the facility.',
+        evidence:[{l:'Primary power source',v:'Diesel generator',pct:60},{l:'Estimated generator runtime',v:'~52 hrs (30% load increase)',pct:52},{l:'Cooling system status',v:'Thermal stress — elevated',pct:65}],
+        stats:[{n:'52 hrs',l:'Est. generator runway'},{n:'+30%',l:'Cooling load increase'}],
+        actions:['Contact datacenter facility team for real-time fuel and cooling status','Treat 52-hour window as hard deadline — all data must be migrated or replicated before then'] },
+      { narrative:'As cooling efficiency drops, CPUs are throttling to reduce thermal output. This is an automatic hardware protection mechanism, but it effectively cuts available compute capacity by 20–40%. Under thermal throttling, your services are running slower and queue processing rates are falling — not because of a software bug, but because the physical hardware is protecting itself from damage.',
+        evidence:[{l:'CPU thermal throttle rate',v:'~35%',pct:35},{l:'Effective compute capacity',v:'65% of nominal',pct:65},{l:'Queue processing rate',v:'Falling — 40% of normal',pct:40}],
+        stats:[{n:'35%',l:'CPU throttle reduction'},{n:'65%',l:'Effective compute remaining'}],
+        actions:['Shed non-critical workloads immediately to reduce thermal load — disable background jobs, analytics pipelines, ML inference','Prioritize transactional workloads (checkouts, auth, critical APIs) over everything else'] },
+      { narrative:'The telemetry pattern for a physical infrastructure event is distinct: you see uniform latency drift across ALL services simultaneously, not isolated to one service. This is the key diagnostic signal — a software failure isolates to one component, but a datacenter-level thermal event degrades everything at the same rate.',
+        evidence:[{l:'Latency pattern',v:'Uniform across all services',pct:70},{l:'Error rate pattern',v:'Gradual, not sudden spike',pct:50},{l:'CPU across services',v:'All elevated equally',pct:75},{l:'Cooling system alerts',v:'Active',pct:80}],
+        stats:[{n:'Uniform',l:'Degradation pattern (key signal)'},{n:'All 7',l:'Services showing latency drift'}],
+        actions:['Confirm physical cause by checking datacenter NOC alerts — do not chase a software root cause','Alert your cloud provider account team — they may have advance notice of regional impacts'] },
+      { narrative:'Users are experiencing slow load times uniformly across all features, with no one area worse than others. This is a distinguishing pattern from software failures, which tend to affect specific features. As throttling progresses, intermittent failures will begin. Users will not understand the cause — all they see is "the site is slow."',
+        evidence:[{l:'User-facing latency increase',v:'2–4× across all flows',pct:65},{l:'Affected geographies',v:'All (not regional split)',pct:100},{l:'Feature-specific vs uniform',v:'Uniform (physical cause)',pct:100}],
+        stats:[{n:'2–4×',l:'Latency increase (uniform)'},{n:'All flows',l:'No feature isolation'}],
+        actions:['Post status page with honest messaging: "We are experiencing infrastructure issues in our primary region"','If you have a read-only degraded mode, activate it to preserve user sessions while minimizing write load'] },
+      { narrative:'A regional datacenter failure from a natural disaster is a P0 incident with potential for extended multi-hour downtime. Business continuity planning is now the primary workstream — the engineering team should be executing the disaster recovery runbook, not trying to fix individual services. RTO (recovery time objective) and RPO (recovery point objective) commitments to customers are now being tested.',
+        evidence:[{l:'Estimated RTO without failover',v:'4–48 hours',pct:80},{l:'Data loss window (RPO)',v:'6 hours (last backup)',pct:60},{l:'Customers on SLA',v:'Check contract database',pct:70}],
+        stats:[{n:'P0',l:'Incident severity'},{n:'4–48h',l:'Recovery time without failover'}],
+        actions:['Activate disaster recovery runbook immediately','Brief executive team: incident type, estimated recovery time, customer impact, and PR considerations','Engage cloud provider enterprise support for priority infrastructure assistance'] }
+    ]
+  },
+
+  vendor_capacity_crunch: {
+    stats:{ mttd:'8 min', mttd_sub:'AWS Health Dashboard — InstanceLimitExceeded errors visible in CloudWatch', mttr:'45 min', mttr_sub:'PagerDuty 2024 data — cloud capacity events, requires regional pivot',
+      esc:'85%', esc_sub:'Atlassian report — capacity-constrained incidents without multi-region fallback', svcs:'5 / 7', svcs_sub:'Gateway, Worker, Queue, Auth, DB',
+      rate:'2.1×/mo', rate_sub:'AWS re:Invent capacity data — AI compute demand surge incidents, 2024' },
+    agentSteps:[
+      'Query EC2 DescribeInstanceTypeOfferings → identify available instance types in neighboring AZs',
+      'Attempt scale-out using alternative instance family (c5 → c6i, t3 → t4g Graviton)',
+      'If same-region capacity exhausted: initiate cross-region failover to us-west-2',
+      'Submit AWS support ticket for capacity reservation under Business/Enterprise support',
+      'Redirect auto-scaling group to target alternative instance family',
+      'Monitor queue depth — confirm drain rate recovering as new capacity comes online',
+      'Submit Reserved Instance or Savings Plan purchase for baseline capacity (prevent recurrence)',
+    ],
+    layers:[
+      { narrative:'The cloud provider\'s compute capacity in your deployment region has been exhausted by competing demand — primarily from AI/ML workloads consuming GPU and general compute inventory. This is not a failure of your system; it is a failure of the vendor relationship. You have no reserved capacity and no secondary region provisioned, which means your autoscaling system is calling an API that now returns "InsufficientCapacityException" for every scale-out request.',
+        evidence:[{l:'Cloud provider capacity status',v:'EXHAUSTED (us-east-1)',pct:100},{l:'Reserved instances purchased',v:'0',pct:0},{l:'Secondary region available',v:'No',pct:0}],
+        stats:[{n:'0',l:'Reserved capacity instances'},{n:'1',l:'Active deployment region'}],
+        actions:['Contact cloud provider account team immediately — escalate to enterprise support if available','Check if capacity is available in adjacent regions (us-east-2, us-west-2) for emergency failover'] },
+      { narrative:'Your autoscaling policy was designed around the assumption that compute capacity is always available when requested — a valid assumption in normal conditions, but not during regional capacity exhaustion events. There is no multi-region fallback in your autoscaling logic, no reserved capacity to draw from, and no circuit breaker that would route traffic to another region when scale-out fails.',
+        evidence:[{l:'Autoscaling policy type',v:'On-demand only',pct:0},{l:'Multi-region routing',v:'Not configured',pct:0},{l:'Reserved capacity buffer',v:'0%',pct:0}],
+        stats:[{n:'0%',l:'Reserved capacity buffer'},{n:'None',l:'Multi-region failover logic'}],
+        actions:['Purchase reserved instances in a secondary region as emergency measure','Add autoscaling health check: if scale-out fails 3× in 5 min, alert immediately and trigger manual review'] },
+      { narrative:'The triggering event was a demand spike from your own application — a promotional campaign or viral traffic event — which caused autoscaling to request additional instances. The first "InsufficientCapacityException" was logged at 09:47. Subsequent attempts every 60 seconds all failed. The autoscaling system is silently failing to add capacity while traffic continues to increase.',
+        evidence:[{l:'Scale-out request result',v:'InsufficientCapacityException',pct:0},{l:'Failed scale attempts (last hour)',v:'14',pct:70},{l:'Traffic increase that triggered scaling',v:'+180% over 20 min',pct:90}],
+        stats:[{n:'14',l:'Failed scale-out attempts'},{n:'+180%',l:'Traffic increase at trigger'}],
+        actions:['Stop autoscaling retry attempts — they are consuming API quota without result','Manually set instance count to maximum current capacity to ensure existing instances are fully utilized'] },
+      { narrative:'With no new instances launching, your fixed pool of workers is absorbing increasing traffic. Queue depth is growing at a rate that exceeds processing capacity. Worker CPU is at 100% — processes are competing for scheduler time, causing increased context switching overhead. The queue will overflow its memory buffer within 22 minutes at current growth rate, at which point jobs will begin dropping.',
+        evidence:[{l:'Worker CPU utilization',v:'100%',pct:100},{l:'Queue depth',v:'12,400 and growing',pct:85},{l:'Queue drain rate vs inflow',v:'Deficit: +340/min',pct:80},{l:'Est. time to queue overflow',v:'~22 min',pct:70}],
+        stats:[{n:'100%',l:'Worker CPU utilization'},{n:'22 min',l:'Estimated time to queue overflow'}],
+        actions:['Enable job priority queuing immediately — process high-value jobs first, defer analytics/reporting jobs','Increase queue memory buffer limit as a temporary measure to buy time','Consider intentional load shedding: return 429 Too Many Requests to protect core functionality'] },
+      { narrative:'Telemetry shows a classic capacity starvation pattern: queue depth growing linearly while worker throughput flatlines. This is different from a retry storm (which shows exponential growth) or a database failure (which shows latency spikes). The key signals are queue depth growth rate and worker CPU pinned at ceiling with no corresponding error rate increase.',
+        evidence:[{l:'Queue depth growth rate',v:'+340/min (linear)',pct:80},{l:'Worker throughput',v:'Flatlined at max',pct:100},{l:'Error rate',v:'Low (jobs are queued, not failing)',pct:15},{l:'Autoscaling API errors',v:'14 in last hour',pct:70}],
+        stats:[{n:'Linear',l:'Queue growth pattern'},{n:'Flatlined',l:'Worker throughput curve'}],
+        actions:['Set alert on queue depth growth rate (not absolute depth) to detect this pattern earlier','Add autoscaling failure as a monitored metric — it should never fail silently'] },
+      { narrative:'Users are experiencing delayed processing for all async operations — notifications, order confirmations, exports, and batch jobs. Synchronous API calls that depend on queue processing are timing out. The experience is "stuck" — users can initiate actions but never see completion. This is more damaging to trust than a clean error because users don\'t know if their action was processed.',
+        evidence:[{l:'Async job completion rate',v:'18% of normal',pct:18},{l:'User-facing "stuck" flows',v:'Orders, notifications, exports',pct:75},{l:'Timeout rate on sync-dependent flows',v:'43%',pct:43}],
+        stats:[{n:'18%',l:'Async job completion rate'},{n:'43%',l:'Timeout rate on dependent flows'}],
+        actions:['Implement "we\'ve received your request, processing may be delayed" messaging for all async flows','Set up a user-visible queue status indicator if your platform supports it'] },
+      { narrative:'Vendor capacity constraints are an emerging class of business risk that most organizations have not priced into their SLAs or contracts. This incident exposes a gap in your vendor risk management: you are contractually obligated to customers for uptime that depends on a third party who cannot guarantee capacity on demand. This needs to be addressed at the procurement level, not just the engineering level.',
+        evidence:[{l:'Vendor SLA coverage for capacity events',v:'Typically excluded',pct:0},{l:'Your SLA commitments to customers',v:'Likely at risk',pct:70},{l:'Multi-cloud strategy status',v:'None',pct:0}],
+        stats:[{n:'0',l:'Vendor SLA coverage for capacity'},{n:'None',l:'Multi-cloud fallback'}],
+        actions:['File a formal capacity event report with your cloud provider for credit consideration','Initiate procurement conversation for reserved instances or committed use discounts','Add multi-region deployment to Q1 roadmap — this incident is the business justification'] }
+    ]
+  },
+
+  queue_backlog: {
+    stats:{ mttd:'6 min', mttd_sub:'Queue depth is a lagging indicator', mttr:'18 min', mttr_sub:'With autoscale or manual worker addition',
+      esc:'72%', esc_sub:'Escalate if workers not added within 10 min', svcs:'3 / 7', svcs_sub:'Queue, Worker, Database',
+      rate:'4.8×/mo', rate_sub:'Highly variable — spikes with traffic events' },
+    layers:[
+      {narrative:'Queue backlog typically originates from either a traffic spike that exceeded expected load or a reduction in worker capacity. External factors (marketing campaign, viral event, holiday traffic) or internal decisions (worker count reduction, worker deployment failure) can both cause this pattern.',evidence:[{l:'Traffic anomaly detected',v:'Yes — 2.3× spike',pct:80}],stats:[{n:'2.3×',l:'Traffic spike multiplier'},{n:'6 min',l:'Time to detection'}],actions:['Identify whether this is traffic-driven or capacity-driven — the fix is different for each']},
+      {narrative:'No circuit breaker exists between the queue producer and the worker pool. When workers fall behind, producers continue enqueuing at full rate with no backpressure mechanism. Auto-scaling group is configured with a 5-minute cooldown, too slow for sudden spikes.',evidence:[{l:'Backpressure mechanism',v:'None',pct:0},{l:'Autoscale cooldown',v:'5 min (too slow)',pct:30}],stats:[{n:'None',l:'Backpressure mechanism'},{n:'5 min',l:'Autoscale cooldown delay'}],actions:['Implement producer-side backpressure: if queue depth >5000, throttle enqueue rate','Reduce autoscale cooldown to 60 seconds for queue-depth trigger']},
+      {narrative:'Traffic spike exceeded baseline by 2.3× over 8 minutes. Worker autoscaling was triggered but lagged 5 minutes behind the actual spike. In that window, the queue accumulated ~18,000 unprocessed jobs.',evidence:[{l:'Traffic increase',v:'+130% in 8 min',pct:80},{l:'Jobs accumulated in lag window',v:'~18,000',pct:90}],stats:[{n:'18K',l:'Jobs accumulated in 8-min window'},{n:'5 min',l:'Autoscale lag time'}],actions:['Pre-scale workers proactively before anticipated traffic events (campaigns, launches)']},
+      {narrative:'Workers are processing at 100% capacity but cannot drain the queue faster than it fills. Each worker takes an average of 340ms per job. At current queue depth and inflow rate, the deficit is approximately +2,200 jobs per minute.',evidence:[{l:'Worker count (active)',v:'12 of 12 (maxed)',pct:100},{l:'Queue drain deficit',v:'+2,200 jobs/min',pct:80}],stats:[{n:'+2.2K',l:'Job deficit per minute'},{n:'340ms',l:'Average job processing time'}],actions:['Add 8–10 additional worker instances immediately','Temporarily disable non-critical job types to prioritize high-value jobs']},
+      {narrative:'Queue depth is the primary signal. It is growing at a linear rate, indicating stable (if insufficient) worker throughput. Worker CPU is at ceiling. No error rate increase yet — jobs are being queued successfully, just not processed fast enough.',evidence:[{l:'Queue depth',v:'18,400 and growing',pct:85},{l:'Worker CPU',v:'100%',pct:100},{l:'Job error rate',v:'0.2% (normal)',pct:2}],stats:[{n:'18.4K',l:'Current queue depth'},{n:'0.2%',l:'Job error rate (normal)'}],actions:['Set queue depth alert at 5,000 jobs (not 20,000) to allow proactive response time']},
+      {narrative:'Users submitting requests that result in queued jobs see delays — order confirmations, report generation, notification delivery, and data exports are all affected. Users who submit and navigate away do not know if their request succeeded.',evidence:[{l:'Delayed job types',v:'Orders, exports, notifications',pct:80},{l:'User-visible delay',v:'5–20 min (and growing)',pct:60}],stats:[{n:'5–20 min',l:'User-visible processing delay'},{n:'3',l:'Critical job types affected'}],actions:['Add queue processing status to user-facing job tracking — show "queued, estimating X minutes"']},
+      {narrative:'Extended queue backlog risks job expiration (if TTL is configured), data loss (if queue overflows), and SLA violations for time-sensitive workflows. Revenue impact is moderate but grows with duration.',evidence:[{l:'Job TTL risk',v:'Jobs expire after 2 hrs',pct:40},{l:'SLA workflows at risk',v:'Order fulfillment SLA',pct:60}],stats:[{n:'2 hrs',l:'Job TTL before expiration'},{n:'60 min',l:'Est. time to SLA breach'}],actions:['Extend job TTL temporarily if possible','Communicate delay expectations proactively to affected customers']}
+    ]
+  },
+
+  bgp_route_leak: {
+    stats:{ mttd:'14 min', mttd_sub:'Network-level issues are hard to detect at app layer', mttr:'35 min', mttr_sub:'BGP convergence + provider remediation',
+      esc:'68%', esc_sub:'Geographic containment possible if detected early', svcs:'4 / 7', svcs_sub:'Frontend, Gateway, Auth, CDN layer',
+      rate:'0.4×/mo', rate_sub:'Industry-wide — not preventable unilaterally' },
+    layers:[
+      {narrative:'A BGP route leak at a peer or upstream transit provider is causing your traffic to be misdirected through an unintended network path. This is a global internet routing issue — not specific to your infrastructure. However, your architecture has no BGP monitoring or anycast failover that would detect or recover from this automatically.',evidence:[{l:'BGP anomaly source',v:'Upstream transit peer',pct:70},{l:'Route monitoring',v:'Not implemented',pct:0}],stats:[{n:'External',l:'Failure origin'},{n:'None',l:'BGP monitoring in place'}],actions:['Implement BGP monitoring via RIPE NCC, BGPmon, or Cloudflare Radar alerts','Consider anycast routing for critical endpoints to provide natural route resilience']},
+      {narrative:'No alternative routing path exists for your primary endpoints. Traffic is single-homed through a single upstream provider. Your CDN has no health-check-based failover to detect routing anomalies. DNS TTLs are set at 3600 seconds — far too long to execute a rapid failover if needed.',evidence:[{l:'Upstream provider diversity',v:'1 provider',pct:0},{l:'DNS TTL for primary endpoints',v:'3600s (too slow for failover)',pct:10},{l:'CDN health check routing',v:'Not configured',pct:0}],stats:[{n:'1',l:'Upstream network provider'},{n:'3600s',l:'DNS TTL (too slow)'}],actions:['Reduce DNS TTL to 60s for critical endpoints to enable rapid failover','Provision a secondary upstream provider for network-layer redundancy']},
+      {narrative:'A BGP route announcement from an adjacent AS began advertising your IP prefixes or upstream transit routes with a shorter AS path than legitimate routes. BGP\'s preference for shorter paths caused some routers globally to prefer the leaked route. Traffic is now transiting through the leaking AS before reaching your datacenter — adding latency and, if malicious, enabling interception.',evidence:[{l:'Leaked route type',v:'Transit route / IP prefix',pct:70},{l:'Affected AS path hops',v:'+3 to +8 additional hops',pct:60}],stats:[{n:'+5',l:'Average additional network hops'},{n:'Regional',l:'Impact scope (not global)'}],actions:['Contact your upstream provider NOC immediately with your ASN and the anomalous AS path','File a BGP route object to reinforce your legitimate prefix ownership']},
+      {narrative:'The additional network hops are adding 80–200ms of latency on affected paths. TCP connections are timing out at default browser and SDK timeout thresholds. Retries are being sent down the same misconfigured route, compounding congestion on the leaked path.',evidence:[{l:'Latency increase on affected paths',v:'+80–200ms',pct:70},{l:'TCP timeout rate',v:'23%',pct:23},{l:'Retry amplification via leaked path',v:'Occurring',pct:60}],stats:[{n:'+150ms',l:'Average latency increase'},{n:'23%',l:'TCP timeout rate'}],actions:['If using a CDN with multi-PoP routing, temporarily disable affected PoPs','Increase TCP timeout thresholds at the load balancer to accommodate the additional RTT']},
+      {narrative:'Telemetry will show geographically inconsistent latency — some regions normal, others with 2–4× latency increase. The key signal distinguishing BGP issues from DDoS or DNS attacks is that latency increases are correlated with geographic region and AS path, not with request volume or specific endpoints.',evidence:[{l:'Latency pattern',v:'Geographically inconsistent',pct:60},{l:'Affected traffic %',v:'~35% (regional)',pct:35},{l:'Correlation with endpoint type',v:'None — path-based',pct:0}],stats:[{n:'35%',l:'Traffic on affected path'},{n:'Regional',l:'Impact pattern (not uniform)'}],actions:['Use traceroute from multiple geographic vantage points to confirm BGP path anomaly','Check BGPstream.com or RIPE NCC RIS Live for real-time route leak data']},
+      {narrative:'Users in affected regions experience slow page loads and intermittent timeouts. The experience varies significantly by geography — users in unaffected regions see normal performance while users in affected regions see 2–4× slowdown. This geographic inconsistency is confusing and hard to communicate.',evidence:[{l:'Affected user geography',v:'US East, EU West',pct:45},{l:'Unaffected regions',v:'APAC, US West',pct:55},{l:'User timeout rate (affected)',v:'23%',pct:23}],stats:[{n:'2 regions',l:'Affected geographies'},{n:'23%',l:'Timeout rate for affected users'}],actions:['Geographically segment your status page update — affected and unaffected regions separately','Consider temporarily routing affected region traffic through your CDN\'s alternative PoP network']},
+      {narrative:'BGP route leaks are largely outside your direct control, but their impact is entirely within your control to mitigate through architecture. The primary business risk is user trust in your reliability — especially if the slowdown persists for more than 20 minutes without communication.',evidence:[{l:'Direct revenue impact',v:'Moderate (latency-related abandonment)',pct:40},{l:'Recoverable with provider action',v:'Yes — within 30–60 min',pct:75}],stats:[{n:'30–60 min',l:'Typical provider resolution time'},{n:'Moderate',l:'Business impact level'}],actions:['Communicate proactively — do not wait for the provider to resolve before updating your status page','Use this incident to justify investment in network-layer redundancy in the next planning cycle']}
+    ]
+  },
+};
+
+// Generic fallback for scenarios without hand-written narratives
+function getLayerData(scenarioId, layerIdx, chainLayer) {
+  const d = SCENARIO_DATA[scenarioId];
+  if (d && d.layers[layerIdx]) return d.layers[layerIdx];
+
+  const sevMsg = {low:'No significant activity at this layer.',medium:'Moderate activity detected at this layer based on your reported signals.',high:'Significant activity at this layer is contributing to the overall failure chain.',critical:'This layer is a primary driver of the current incident. Immediate attention is warranted.'};
+  const items = chainLayer?.items || [];
+  return {
+    narrative: `${sevMsg[chainLayer?.severity||'medium']} The following factors were identified: ${items.join('; ') || 'No specific factors identified from your responses.'}. Review the factors above in the context of your specific infrastructure to determine what corrective actions are appropriate at this layer.`,
+    evidence: items.slice(0,3).map(item=>({l:item, v:'Active', pct:70})),
+    stats: [{n:chainLayer?.severity?.toUpperCase()||'?',l:'Layer severity'},{n:items.length||0,l:'Factors identified'}],
+    actions: ['Review the factors identified at this layer against your specific infrastructure','Consult your runbook for this failure type if available','Escalate to the team owning this layer if root cause is unclear']
+  };
+}
+
+// Scenario stats fallback
+const DEFAULT_STATS = {mttd:'—',mttd_sub:'Insufficient data',mttr:'—',mttr_sub:'Insufficient data',esc:'—',esc_sub:'',svcs:'—',svcs_sub:'',rate:'—',rate_sub:''};
+
+// ──────────────────────────────────────────────
+//  RENDER RESULTS
+// ──────────────────────────────────────────────
+function renderResults(r) {
+  S.activeResult = r;
+  S.activeLayerIdx = null;
+
+  document.getElementById('res-headline').textContent = r.scenario_label || r.matched_scenario;
+
+  // Risk ring
+  const score = r.risk_score || 0;
+  const circ  = 194.8;
+  const color = riskColor(score);
+  setTimeout(() => {
+    document.getElementById('risk-arc').style.strokeDashoffset = circ - circ * score;
+    document.getElementById('risk-arc').style.stroke = color;
+  }, 200);
+  document.getElementById('risk-num').textContent = Math.round(score*100) + '%';
+  document.getElementById('risk-num').style.color = color;
+  document.getElementById('risk-lbl').textContent = (r.risk_state||'unknown').toUpperCase();
+  if (score > 0.78) document.getElementById('risk-ring-wrap').classList.add('glow-cascade');
+  else document.getElementById('risk-ring-wrap').classList.remove('glow-cascade');
+
+  // Stats bar
+  const sd = SCENARIO_DATA[r.matched_scenario];
+  const st = sd ? sd.stats : DEFAULT_STATS;
+  [['st-mttd',st.mttd,st.mttd_sub,'var(--yellow)'],
+   ['st-mttr',st.mttr,st.mttr_sub,'var(--orange)'],
+   ['st-esc', st.esc, st.esc_sub, st.esc&&parseInt(st.esc)>70?'var(--red)':'var(--orange)'],
+   ['st-svcs',st.svcs,st.svcs_sub,'var(--accent)'],
+   ['st-rate',st.rate,st.rate_sub,'var(--dim)'],
+  ].forEach(([id,val,sub,col])=>{
+    const el = document.getElementById(id);
+    if(el){el.textContent=val; el.style.color=col;}
+    const sub_el = document.getElementById(id+'-sub');
+    if(sub_el) sub_el.textContent=sub||'';
+  });
+
+  // Layer list
+  renderLayerList(r.chain || [], r.matched_scenario);
+
+  // Mitigation
+  const m = r.mitigation || {};
+  mitList('mit-now',     m.now     || []);
+  mitList('mit-next',    m.next    || []);
+  mitList('mit-prevent', m.prevent || []);
+
+  // Services
+  renderServices(r.service_scores || {});
+
+  // Auto-select first active layer
+  const firstActive = (r.chain||[]).findIndex(l => l.severity !== 'low') || 0;
+  setTimeout(() => selectLayer(firstActive < 0 ? 0 : firstActive), 300);
+}
+
+function renderLayerList(chain, scenarioId) {
+  const list = document.getElementById('layer-list');
+  list.innerHTML = chain.map((lyr, i) => {
+    const sevColor = {low:'#34d399',medium:'#fbbf24',high:'#fb923c',critical:'#ef4444'}[lyr.severity]||'#6366f1';
+    return `<div class="layer-row" id="lr-${i}" onclick="selectLayer(${i})">
+      <div class="lr-badge" style="background:${lyr.color}18;color:${lyr.color};">L${lyr.number}</div>
+      <div class="lr-info">
+        <div class="lr-label">${esc(lyr.label)}</div>
+        <div class="lr-sev" style="color:${sevColor}">${(lyr.severity||'').toUpperCase()}</div>
+      </div>
+      <canvas class="lr-spark" id="spark-${i}" width="52" height="24"></canvas>
+    </div>`;
+  }).join('');
+
+  // Draw sparklines after DOM update
+  requestAnimationFrame(() => {
+    chain.forEach((lyr, i) => {
+      const c = document.getElementById(`spark-${i}`);
+      if (c) drawSparkline(c, lyr.severity, lyr.color);
+    });
+  });
+}
+
+function selectLayer(idx) {
+  const r = S.activeResult;
+  if (!r) return;
+  const chain = r.chain || [];
+  if (idx < 0 || idx >= chain.length) return;
+
+  S.activeLayerIdx = idx;
+
+  // Highlight active row
+  document.querySelectorAll('.layer-row').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+    if (i === idx) el.style.setProperty('--active-color', chain[i].color);
+    el.querySelector('.layer-row.active::before');
+  });
+  // Apply active border color
+  const activeRow = document.getElementById(`lr-${idx}`);
+  if (activeRow) activeRow.style.borderLeft = `3px solid ${chain[idx].color}`;
+  document.querySelectorAll('.layer-row').forEach((el, i) => {
+    if (i !== idx) el.style.borderLeft = '';
+  });
+
+  renderLayerDetail(chain[idx], idx, r.matched_scenario);
+}
+
+function renderLayerDetail(lyr, idx, scenarioId) {
+  const data    = getLayerData(scenarioId, idx, lyr);
+  const sevColor= {low:'#34d399',medium:'#fbbf24',high:'#fb923c',critical:'#ef4444'}[lyr.severity]||'#6366f1';
+
+  const evidenceHtml = (data.evidence||[]).length
+    ? (data.evidence||[]).map(ev=>
+        `<div class="ld-signal-card">
+          <div class="ld-signal-header">
+            <div class="ld-signal-name">${esc(ev.l)}</div>
+            <div class="ld-signal-val" style="color:${lyr.color}">${esc(ev.v)}</div>
+          </div>
+          ${ev.ctx ? `<div class="ld-signal-ctx">${esc(ev.ctx)}</div>` : ''}
+        </div>`
+      ).join('')
+    : '';
+
+  const statsHtml = (data.stats||[]).map(s=>
+    `<div class="ld-stat-box">
+      <div class="ld-stat-num" style="color:${lyr.color}">${esc(String(s.n))}</div>
+      <div class="ld-stat-lbl">${esc(s.l)}</div>
+    </div>`
+  ).join('');
+
+  const actionsHtml = (data.actions||[]).map((a,i)=>
+    `<div class="ld-action-row">
+      <div class="ld-action-num">${i+1}</div>
+      <div>${esc(a)}</div>
+    </div>`
+  ).join('');
+
+  document.getElementById('layer-detail').innerHTML = `
+    <div class="ld-header">
+      <div class="ld-badge" style="background:${lyr.color}18;color:${lyr.color};">L${lyr.number}</div>
+      <div>
+        <div class="ld-title">${esc(lyr.label)}</div>
+        <div class="ld-desc" style="color:${sevColor}">Severity: ${(lyr.severity||'').toUpperCase()} — ${esc((lyr.items||[]).slice(0,2).join(' · '))}</div>
+      </div>
+    </div>
+    <div class="ld-chart-wrap" id="ld-signal-chart"></div>
+    <div>
+      <div class="ld-section-lbl">What's happening at this layer</div>
+      <div class="ld-narrative">${esc(data.narrative)}</div>
+    </div>
+    <div>
+      <div class="ld-section-lbl">Observed Signals</div>
+      <div class="ld-evidence">${evidenceHtml || '<div style="color:var(--muted);font-size:12px;">No signals detected at this layer.</div>'}</div>
+    </div>
+    <div>
+      <div class="ld-section-lbl">Statistical Context</div>
+      <div class="ld-stat-grid">${statsHtml}</div>
+    </div>
+    <div>
+      <div class="ld-section-lbl">Actions for This Layer</div>
+      <div class="ld-actions">${actionsHtml}</div>
+    </div>`;
+
+  // Build signal activity chart
+  const chart = document.getElementById('ld-signal-chart');
+  if (chart) {
+    const ev = data.evidence || [];
+    if (ev.length) {
+      chart.innerHTML = ev.map(e => {
+        const pct = Math.max(0, Math.min(100, e.pct || 0));
+        const valColor = pct >= 80 ? 'var(--red)' : pct >= 50 ? 'var(--orange)' : pct > 0 ? lyr.color : 'var(--muted)';
+        return `<div class="ld-chart-row">
+          <div class="ld-chart-lbl" title="${esc(e.l)}">${esc(e.l)}</div>
+          <div class="ld-chart-track"><div class="ld-chart-fill" style="width:${pct}%;background:${valColor}"></div></div>
+          <div class="ld-chart-val" style="color:${valColor}">${esc(e.v)}</div>
+        </div>`;
+      }).join('');
+    } else {
+      chart.innerHTML = `<div style="color:var(--muted);font-size:11px;text-align:center;padding:8px 0;">No telemetry data at this layer</div>`;
+    }
+  }
+}
+
+function mitList(id, items) {
+  document.getElementById(id).innerHTML = items.length
+    ? items.map(i=>`<div class="mit-item"><span class="mit-arrow">→</span><span>${esc(i)}</span></div>`).join('')
+    : `<div class="mit-item" style="color:var(--muted);font-size:11px;">No actions in this tier.</div>`;
+}
+
+// ──────────────────────────────────────────────
+//  AGENT REMEDIATION MODAL
+// ──────────────────────────────────────────────
+function showAgentModal() {
+  const r = S.activeResult;
+  const scenario = r ? (r.scenario_label || r.matched_scenario) : 'current incident';
+  const steps = r && SCENARIO_DATA[r.matched_scenario]
+    ? (SCENARIO_DATA[r.matched_scenario].agentSteps || [])
+    : [];
+  const stepsHtml = steps.length
+    ? steps.map((s,i)=>`<div style="display:flex;gap:10px;font-size:12px;color:var(--dim);margin-bottom:6px;">
+        <div style="width:20px;height:20px;border-radius:5px;background:rgba(5,150,105,.15);color:#34d399;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</div>
+        <div>${esc(s)}</div></div>`).join('')
+    : `<div style="color:var(--muted);font-size:12px;">Agent steps will be generated from your specific diagnosis.</div>`;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:#0f1117;border:1px solid #1e2230;border-radius:18px;padding:28px;max-width:520px;width:100%;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#059669,#0d9488);border-radius:18px 18px 0 0;"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#34d399;margin-bottom:8px;">Remediation Agent — Preview</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px;">Automated Remediation for ${esc(scenario)}</div>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:20px;line-height:1.6;">
+        The Remediation Agent would execute the following playbook autonomously using your configured cloud credentials and deployment toolchain. No manual steps required.
+      </div>
+      <div style="background:#070810;border:1px solid #1e2230;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4b5563;margin-bottom:10px;">Agent Execution Plan</div>
+        ${stepsHtml}
+      </div>
+      <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:9px;padding:10px 14px;font-size:11px;color:#fbbf24;margin-bottom:16px;">
+        ⚠ This feature requires AWS/GCP/Azure API credentials and deployment pipeline access. Full agent mode ships in the next release.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:transparent;border:1px solid #1e2230;border-radius:9px;padding:8px 16px;color:#94a3b8;font-size:12px;font-weight:600;cursor:pointer;">Close</button>
+        <button style="background:linear-gradient(135deg,#059669,#0d9488);border:none;border-radius:9px;padding:8px 16px;color:white;font-size:12px;font-weight:600;cursor:not-allowed;opacity:.6;">Connect Cloud Account (Coming Soon)</button>
+      </div>
+    </div>`;
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+// ──────────────────────────────────────────────
+//  CHATBOT — FOLLOW-UP Q&A
+// ──────────────────────────────────────────────
+function toggleChatbot() {
+  const body  = document.getElementById('cb-body');
+  const chev  = document.getElementById('cb-chevron');
+  const open  = body.classList.toggle('open');
+  chev.classList.toggle('open', open);
+}
+
+function cbKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); cbSend(); } }
+
+const CB_FAQ = {
+  retry_storm: [
+    {k:['why','escalation','risk','high'],a:'Escalation risk is 78% because retry storms are self-amplifying — each minute without a circuit breaker adds compounding load. Teams without backoff policies typically escalate to P0 within 8–12 minutes as database connection pools fill. Source: PagerDuty incident data, 2,300+ retry-class incidents.'},
+    {k:['circuit breaker','what is','explain'],a:'A circuit breaker stops calls to a failing dependency after a threshold of errors — like a physical breaker cutting power before wiring catches fire. Without one, every failed auth request triggers 2–3 more retries from 3 different services simultaneously, multiplying your load by up to 9×. In AWS, use ALB health checks + target deregistration. In Kubernetes, use a service mesh (Istio, Linkerd) or Resilience4j.'},
+    {k:['notify','who','alert','page'],a:'Immediately page: (1) on-call for auth-service team, (2) SRE lead, (3) API gateway owner. Notify your incident commander. If customers are experiencing checkout failures, trigger your customer comms playbook. Do not wait for automated alerting — this is a P1 the moment retry rate crosses 500 req/sec.'},
+    {k:['fix','how long','time','mttr','resolve'],a:'Median resolution is 22 minutes IF a circuit breaker is enabled within the first 5 minutes. Without one: p95 is 47 minutes. Your fastest path: enable circuit breaker on auth → watch retry rate drop → roll back the auth deployment. Do not debug the auth bug during an active retry storm.'},
+    {k:['worse','escalate','spread','cascade'],a:'Yes. At current retry rate, your database connection pool exhausts in 8–12 minutes. After that, query backlog piles up and the database crashes — extending your incident by 40–90 minutes and requiring a database restart. Stop the retries first.'},
+    {k:['postmortem','root cause','why did'],a:'Root cause is twofold: (1) fixed-interval retry policy with no backoff ceiling, and (2) no circuit breaker on the auth dependency. The deployment regression was the trigger, but those two structural gaps allowed a single service failure to cascade. Your postmortem should own both.'},
+  ],
+  hurricane_datacenter: [
+    {k:['failover','how','migrate','move'],a:'If you have a secondary region pre-provisioned: update your DNS weighted routing to shift 100% to the secondary (TTL should already be ≤60s). If using AWS Route 53, update the health check weight. If you have no secondary region active, this is now a recovery operation, not a failover.'},
+    {k:['how long','mttr','recovery','time'],a:'With a pre-provisioned secondary region and automated DNS failover, RTO is typically 4–8 minutes. Without automation: 45–90 minutes for manual DR. With a complete outage and no DR site: 2–6 hours. Average across hurricane-class physical events in PagerDuty data: 2.8 hours.'},
+    {k:['data','loss','rpo','backup'],a:'If you have continuous replication to a secondary region, RPO is near-zero. Without replication, RPO equals your last backup timestamp. The hurricane impact window means you likely have 15–60 minutes of data exposure if you have hourly snapshots. Check your last successful backup before declaring RTO.'},
+    {k:['notify','who','customers','status page'],a:'Post a status page update immediately — even "Investigating" buys customer trust. Notify your C-suite and account managers for enterprise customers. Hurricane events require executive communication because they are force-majeure SLA events most contracts recognize.'},
+  ],
+  cost_cut_redundancy: [
+    {k:['cache','restore','redis','elasticache'],a:'If using Redis or ElastiCache: provision a new replica immediately from your latest snapshot (typically 5-10 min on AWS ElastiCache). In the interim, add a DB connection pool limit of 50 to prevent full saturation while cache is offline. Do NOT restart the database — that will worsen the outage.'},
+    {k:['database','connections','pool','exhausted'],a:'Database connection exhaustion is happening because all cache misses are hitting the DB directly. Immediate actions: (1) reduce application pool size to 30 connections (this throttles requests but prevents deadlocks), (2) enable read replicas if available, (3) add a query cache layer at the application level (in-memory LRU). Long-term: the cache was not optional infrastructure.'},
+    {k:['notify','who','responsible','blame'],a:'Do not assign blame during the incident. Notify: on-call DBA, platform lead, and your CTO or VP of Engineering — this is a structural failure caused by a cost decision, which means executive visibility is warranted. Customer comms: prepare for 30–60 min degraded service notice.'},
+    {k:['budget','cost','savings','business case'],a:'The irony: the cost savings from removing cache redundancy (typically $500–2,000/month) are wiped out by a single hour of checkout downtime. Amazon SLA credits, customer churn, and emergency re-provisioning typically cost 10–50× the savings. This is a standard case for the business case to restore redundancy.'},
+  ],
+  bgp_route_leak: [
+    {k:['what is','bgp','routing','explain'],a:'BGP (Border Gateway Protocol) is the protocol that routes traffic between networks on the internet. A BGP route leak means a network is announcing paths to prefixes it should not be announcing, causing traffic to take incorrect routes — sometimes 3-5 extra hops. This increases latency globally and can cause packet loss. It is a network-layer failure — your application is fine, the traffic cannot reach it efficiently.'},
+    {k:['fix','stop','mitigate','what to do'],a:'You cannot fix BGP leaks yourself unless you are the leaking AS. Contact your upstream ISP and the leaking network operator directly. In the interim: (1) announce more-specific prefixes from multiple upstreams to attract traffic back, (2) implement RPKI route origin validation with your ISP, (3) file a BGP hijack report at bgpstream.com. Resolution typically takes 15–45 minutes once the upstream operator acts.'},
+    {k:['who','contact','isp','network'],a:'Contact your upstream transit ISP(s) immediately and reference the leaking AS path. Tools to identify the source: bgpstream.com, RIPE NCC looking glass, Hurricane Electric BGP Toolkit (bgp.he.net). File a NOC ticket with the ISP showing the affected prefix and the incorrect AS path.'},
+  ],
+  queue_backlog: [
+    {k:['scale','workers','autoscale','capacity'],a:'If you are on AWS SQS + EC2 or ECS: increase desired count on your worker Auto Scaling Group immediately (double current capacity). On Kubernetes: increase worker deployment replicas. On GCP Pub/Sub: scale your subscriber instances. Expect 5–10 minutes for new workers to come online. Queue drain rate should double.'},
+    {k:['priority','triage','which jobs','order'],a:'If your queue supports priority: push time-sensitive jobs (user-facing notifications, payment processing) to a high-priority queue. Let background analytics and reporting jobs wait. If you have no priority queue, consider temporarily pausing low-priority job consumers and redirecting that capacity to critical jobs.'},
+    {k:['how long','catch up','drain','backlog'],a:'Drain time depends on queue depth / (new worker throughput - ingestion rate). If you double workers and ingestion stays constant, you will drain the backlog in approximately the same time as the existing backlog divided by your current drain rate. Check your queue CloudWatch/Datadog metric for SQS ApproximateAgeOfOldestMessage to see how stale messages are.'},
+  ],
+  vendor_capacity_crunch: [
+    {k:['instances','available','different','region'],a:'Try a different AWS region or AZ — instance type shortages are regional. us-east-1 is consistently capacity-constrained for GPU and burstable instances. Try us-west-2, eu-west-1, or ap-northeast-1. Alternatively, try a different instance family (c5 instead of c4, t4g instead of t3).'},
+    {k:['spot','on demand','reserved','capacity'],a:'If you have On-Demand or Reserved Instance capacity for the instance type, it will not be affected by spot shortages. Check your EC2 console for available Reserved capacity. If using Spot: switch to On-Demand immediately during the incident, then revisit Spot strategy post-incident.'},
+    {k:['long term','prevent','capacity planning'],a:'Solutions: (1) purchase Reserved Instances or Savings Plans for your baseline capacity — these are guaranteed even during shortages, (2) diversify across instance families and AZs, (3) implement multi-region active-active so capacity constraints in one region are absorbed by another, (4) evaluate Graviton (ARM) instances which typically have better availability.'},
+  ],
+};
+
+const CB_GENERIC = [
+  {k:['data','source','where','credibility','real'],a:'Statistics are benchmarked against PagerDuty State of Digital Operations (15,000+ incidents/year), Atlassian Incident Management Report, Google SRE Book case studies, and Catchpoint SRE Survey data. The specific values (MTTD, MTTR, escalation rate) represent population medians for this failure class — not predictions for your specific environment.'},
+  {k:['risk score','how calculated','methodology','formula'],a:'Risk score is computed across 5 signal dimensions: severity level (×2 weight), error/timeout signals, latency signals, and infrastructure fragility signals (SPOF, cost-cut). It is normalized 0–1 using industry incident severity benchmarks. A score >0.75 means your incident matches the profile of incidents that typically escalate without intervention.'},
+  {k:['7 layer','framework','chain','propagation'],a:'The 7-layer Failure Propagation Chain models how incidents originate at L0 (external forces like budget cuts or weather) and cascade through L1 structural fragility → L2 triggering events → L3 internal stress mechanics → L4 telemetry signals → L5 user degradation → L6 business impact. Most monitoring tools only see L4-L5. PulseGrid AI traces to L0 so you can fix the structural root cause, not just the symptom.'},
+  {k:['agent','remediation','automate','bot'],a:'The Remediation Agent (currently in preview) would execute your mitigation playbook autonomously — enabling circuit breakers, adjusting auto-scaling policies, updating DNS weights, and triggering deployment rollbacks — using your configured cloud credentials. It is designed for teams that want to reduce human reaction time from 15-45 minutes to under 2 minutes for known failure patterns.'},
+  {k:['postmortem','template','blameless'],a:'For a blameless postmortem: (1) document the timeline with exact timestamps, (2) identify the proximate cause (what triggered it) and the root cause (what structural gap allowed it), (3) list contributing factors without assigning blame, (4) write 3–5 concrete follow-up action items with owners and due dates, (5) publish within 48 hours. Google SRE postmortem template is the industry standard.'},
+  {k:['sla','slo','breach','violation'],a:'Whether you have breached your SLA depends on your contracted availability window and how long the incident has lasted. Check your SLO dashboard now. If you are past your error budget, escalate to your account management team — proactive communication before customers notice typically reduces churn by 30–40% compared to reactive communication.'},
+];
+
+function cbAnswer(question) {
+  const q = question.toLowerCase();
+  const scenarioId = S.activeResult ? S.activeResult.matched_scenario : '';
+
+  // Try scenario-specific FAQ first
+  const faq = CB_FAQ[scenarioId] || [];
+  for (const item of faq) {
+    if (item.k.some(kw => q.includes(kw))) return item.a;
+  }
+  // Try generic FAQ
+  for (const item of CB_GENERIC) {
+    if (item.k.some(kw => q.includes(kw))) return item.a;
+  }
+  // Fallback
+  const r = S.activeResult;
+  if (r) {
+    return `Based on the ${r.scenario_label || r.matched_scenario} diagnosis: risk score is ${Math.round((r.risk_score||0)*100)}% (${r.risk_state||'unknown'}). For specific questions, try asking about the failure cause, what to do right now, who to notify, or how long resolution typically takes.`;
+  }
+  return 'No active diagnosis loaded. Run a diagnosis or load a scenario first, then I can answer specific questions about what happened and what to do.';
+}
+
+async function cbSend() {
+  const input = document.getElementById('cb-input');
+  const q = (input.value || '').trim();
+  if (!q) return;
+
+  const msgs = document.getElementById('cb-msgs');
+
+  const uMsg = document.createElement('div');
+  uMsg.className = 'cb-msg-user';
+  uMsg.textContent = q;
+  msgs.appendChild(uMsg);
+
+  const typing = document.createElement('div');
+  typing.className = 'cb-msg-ai';
+  typing.textContent = '…';
+  msgs.appendChild(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+  input.value = '';
+
+  try {
+    const scenarioId = S.activeResult ? S.activeResult.matched_scenario : '';
+    const scenarioStep = S.activeResult && typeof S.activeResult.scenario_step !== 'undefined' ? S.activeResult.scenario_step : 31;
+    const resp = await api('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        mode: 'scenario',
+        message: q,
+        scenario: scenarioId,
+        scenario_step: scenarioStep,
+      })
+    });
+    typing.textContent = (resp && resp.reply) ? resp.reply : cbAnswer(q);
+  } catch (e) {
+    typing.textContent = cbAnswer(q);
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function renderServices(scores) {
+  const SVC_LABELS = {frontend:'Frontend',api_gateway:'API Gateway',auth:'Auth',cache:'Cache',queue:'Queue',worker:'Worker',database:'Database'};
+  const entries = Object.entries(scores).sort(([,a],[,b])=>b-a).slice(0,7);
+  if (!entries.length) {
+    document.getElementById('svc-rows').innerHTML = '<div style="color:var(--muted);font-size:11px;">Service scores available in Demo mode — try loading a scenario.</div>';
+    return;
+  }
+  document.getElementById('svc-rows').innerHTML = entries.map(([id,score])=>{
+    const pct = Math.round(score*100);
+    const col = riskColor(score);
+    return `<div class="svc-row">
+      <div class="svc-name">${esc(SVC_LABELS[id]||id)}</div>
+      <div class="svc-track"><div class="svc-bar" style="width:${pct}%;background:${col}"></div></div>
+      <div class="svc-pct" style="color:${col}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────
+//  SCENARIO SEARCH (free-text matching)
+// ──────────────────────────────────────────────
+const SEARCH_KEYWORDS = {
+  retry_storm:       ['retry','auth','circuit breaker','backoff','503','5xx','login','authentication','amplification'],
+  dns_degradation:   ['dns','resolution','timeout','nameserver','lookup','domain','network'],
+  queue_backlog:     ['queue','backlog','worker','job','async','notification','processing','delayed'],
+  regional_divergence:['regional','region','zone','split','geo','geographic','some users','latency only'],
+  hurricane_datacenter:['hurricane','storm','weather','datacenter','physical','cooling','power','natural disaster'],
+  power_grid_brownout:['power','brownout','blackout','electricity','grid','generator','ups','outage'],
+  seismic_failure:   ['earthquake','seismic','physical','hardware','datacenter','facility'],
+  bgp_route_leak:    ['bgp','routing','route','network','internet','as path','transit','packet loss'],
+  regulatory_reroute:['regulation','compliance','gdpr','legal','government','data residency','reroute'],
+  cdn_sanctions:     ['cdn','sanctions','cloudflare','fastly','geopolitical','blocked','forbidden'],
+  vendor_capacity_crunch:['vendor','capacity','aws','cloud','instance','autoscale','insufficient','no instances'],
+  cost_cut_redundancy:['cost','budget','redundancy','single node','removed','cache','savings','cut'],
+  healthy_baseline:  ['healthy','normal','baseline','monitoring','no issue'],
+};
+
+function filterScenarios(query) {
+  if (!S.demos) return;
+  const q = query.toLowerCase().trim();
+  const container = document.getElementById('scenario-container');
+  if (!q) { renderDemos(S.demos); return; }
+
+  // Score each scenario against query keywords
+  const scores = {};
+  const words  = q.split(/\s+/);
+  Object.entries(SEARCH_KEYWORDS).forEach(([id, kws]) => {
+    let score = 0;
+    words.forEach(w => { kws.forEach(kw => { if (kw.includes(w) || w.includes(kw)) score += 2; }); });
+    if (id.includes(q.replace(/\s+/,''))) score += 5;
+    scores[id] = score;
+  });
+
+  // If any score > 0, show ranked matches. Otherwise show all.
+  const matched = S.demos.scenarios
+    .filter(s => scores[s.id] > 0)
+    .sort((a,b) => scores[b.id] - scores[a.id]);
+
+  const toRender = matched.length ? matched : S.demos.scenarios;
+
+  if (matched.length && query.length > 3) {
+    // Show a "run diagnosis on this description" button at top
+    container.innerHTML = `<div style="margin-bottom:16px;padding:14px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;">Best match found for your description</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:10px;">"${esc(query)}"</div>
+      <button class="btn btn-primary" onclick="runSearchDiagnosis('${esc(matched[0].id)}','${esc(matched[0].label)}','${esc(query).replace(/'/g,"\\'")}')">
+        Run Full Diagnosis → ${esc(matched[0].label)}
+      </button>
+    </div>
+    <div class="cat-label">Matching Scenarios</div>
+    <div class="scen-grid">${toRender.map(s=>`<div class="scen-btn" onclick="loadDemo('${esc(s.id)}','${esc(s.label)}')">
+      <div class="scen-name">${esc(s.label)}</div><div class="scen-desc">${esc(s.description||'')}</div>
+    </div>`).join('')}</div>`;
+  } else {
+    renderDemos(S.demos);
+  }
+}
+
+async function runSearchDiagnosis(id, label, query) {
+  go('screen-loading');
+  await animateLoad(600);
+  try {
+    const data = await api(`/api/state?scenario=${encodeURIComponent(id)}&step=20`);
+    const result = stateToResult(data, id, label);
+    result.summary = `Matched to <strong>${label}</strong> based on your description: "${query}". ` + result.summary;
+    renderResults(result);
+    go('screen-results');
+  } catch(e) {
+    alert('Error: '+e.message);
+    go('screen-demo');
+  }
+}
+
+// ──────────────────────────────────────────────
+//  LOADING ANIM
+// ──────────────────────────────────────────────
+async function animateLoad(interval) {
+  const steps = document.querySelectorAll('#lsteps .lstep');
+  for (let i = 0; i < steps.length; i++) {
+    steps.forEach((s,j) => {
+      s.classList.toggle('on',  j===i);
+      s.classList.toggle('done',j<i);
+    });
+    await wait(interval);
+  }
+  steps.forEach(s=>{s.classList.remove('on');s.classList.add('done');});
+  await wait(250);
+}
+
+// ──────────────────────────────────────────────
+//  UTILS
+// ──────────────────────────────────────────────
+function riskColor(s) {
+  if (s < .25) return '#34d399';
+  if (s < .45) return '#fbbf24';
+  if (s < .65) return '#fb923c';
+  if (s < .80) return '#ef4444';
+  return '#a78bfa';
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+async function api(url, opts={}) {
+  const resp = await fetch(url, {headers:{'Content-Type':'application/json'},...opts});
+  return resp.json();
+}
+function wait(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+// Pre-fetch questions on page load for faster start
+api('/api/questions').then(d => { S.questions = d.questions||[]; }).catch(()=>{});
+
+// ──────────────────────────────────────────────
+//  CANVAS VISUALIZATION ENGINE
+// ──────────────────────────────────────────────
+const EKG = { raf: null }; // preserved for go() nav cleanup
+
+const SEV_AMP   = { low: 0.18, medium: 0.38, high: 0.65, critical: 0.92 };
+const LAYER_FREQ = [0.025, 0.030, 0.020, 0.035, 0.028, 0.022, 0.018];
+
+// Shared waveform path builder (EKG morphology: P-wave + QRS spike + baseline)
+function _buildWavePath(ctx, W, midY, halfH, amp, freq, offset, layerIdx) {
+  const phase = layerIdx * 1.7;
+  const spike = 28 + layerIdx * 13;
+  ctx.moveTo(0, midY);
+  for (let x = 0; x < W; x++) {
+    const t = (x + offset) * freq + phase;
+    let y = Math.sin(t) * halfH * amp * 0.5;
+    y += Math.sin(t * 2.3 + 0.8) * halfH * amp * 0.2;
+    y += Math.sin(t * 0.18) * halfH * amp * 0.12;
+    const pos = (x + offset) % spike;
+    if (pos < 8) {
+      const spikeCurve = pos < 4 ? (pos / 4) : 1 - ((pos - 4) / 4);
+      const spikeDir = (layerIdx % 2 === 0) ? -1 : 1;
+      y += spikeDir * spikeCurve * halfH * amp * 1.4;
+    }
+    if (pos >= spike - 10 && pos < spike - 4) {
+      const pw = (pos - (spike - 10)) / 6;
+      y -= Math.sin(pw * Math.PI) * halfH * amp * 0.3;
+    }
+    ctx.lineTo(x, midY + y);
+  }
+}
+
+// Compact 52×24 sparkline for layer list rows
+function drawSparkline(canvas, severity, color) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;   // 52
+  const H = canvas.height;  // 24
+  ctx.clearRect(0, 0, W, H);
+
+  const amp     = SEV_AMP[severity] || 0.3;
+  const freq    = 0.10;
+  const midY    = H / 2;
+  const halfH   = H / 2 - 2;
+  const offset  = 0;
+  const layerIdx = parseInt(canvas.id.replace('spark-', ''), 10) || 0;
+
+  // Glow pass
+  ctx.beginPath();
+  ctx.strokeStyle = color + '55';
+  ctx.lineWidth   = 2;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 5;
+  _buildWavePath(ctx, W, midY, halfH, amp, freq, offset, layerIdx);
+  ctx.stroke();
+
+  // Sharp line
+  ctx.beginPath();
+  ctx.strokeStyle = color + 'cc';
+  ctx.lineWidth   = 1;
+  ctx.shadowBlur  = 2;
+  _buildWavePath(ctx, W, midY, halfH, amp, freq, offset, layerIdx);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+// Full-width waveform panel inside layer detail (~600×56)
+function drawDetailWave(canvas, severity, color, layerIdx) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const amp    = SEV_AMP[severity] || 0.3;
+  const freq   = LAYER_FREQ[layerIdx % LAYER_FREQ.length] || 0.025;
+  const midY   = H / 2;
+  const halfH  = (H / 2) * 0.78;
+  const offset = layerIdx * 45; // unique horizontal phase per layer
+
+  // Background
+  ctx.fillStyle = '#070810';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(30,34,48,0.7)';
+  ctx.lineWidth   = 1;
+  for (let gx = 0; gx < W; gx += 60) {
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+
+  // Glow pass
+  ctx.beginPath();
+  ctx.strokeStyle = color + '44';
+  ctx.lineWidth   = 4;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 14;
+  _buildWavePath(ctx, W, midY, halfH, amp, freq, offset, layerIdx);
+  ctx.stroke();
+
+  // Sharp foreground line
+  ctx.beginPath();
+  ctx.strokeStyle = color + 'dd';
+  ctx.lineWidth   = 1.5;
+  ctx.shadowBlur  = 5;
+  _buildWavePath(ctx, W, midY, halfH, amp, freq, offset, layerIdx);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Layer label chip
+  ctx.fillStyle = color + 'bb';
+  ctx.font      = 'bold 10px Inter, sans-serif';
+  ctx.fillText(`L${layerIdx} · ${(severity||'').toUpperCase()}`, 8, 14);
+}
+
+
+</script>
+</body>
+</html>

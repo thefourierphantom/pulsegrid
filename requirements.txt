@@ -1,0 +1,5 @@
+# PulseGrid currently uses only Python standard library modules.
+# Keep this file so Render can run: pip install -r requirements.txt
+#
+# If you later add real model-backed chat, add packages here, for example:
+# openai>=1.0.0

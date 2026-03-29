@@ -1,0 +1,324 @@
+# api/server.py
+# PulseGrid HTTP API server
+# Pure stdlib — no external web framework required.
+#
+# Endpoints:
+#   GET  /                          → serves frontend/index.html
+#   GET  /api/scenarios             → list available scenarios
+#   POST /api/scenario/load?name=X  → pre-compute and cache a scenario
+#   GET  /api/state?step=N          → full system state at step N
+#   GET  /api/graph                 → static graph topology (nodes + edges)
+#   GET  /static/<file>             → static asset serving
+
+import sys
+import os
+import json
+import time
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse, parse_qs
+
+# Add parent directory to path so engine/simulator are importable
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from engine.graph     import SERVICES, get_edges_for_render
+from engine.scoring   import score_service, system_state as compute_system_state
+from engine.blast_radius    import propagate, get_blast_radius
+from engine.recommendations import get_recommendations
+from simulator.scenarios    import (get_scenario_history, get_scenario_context,
+                                    list_scenarios, list_categories, TOTAL_STEPS)
+from engine.chain           import diagnose, LAYERS, QUESTIONS
+from engine.chatbot         import answer_chat
+
+# ── Global scenario cache ─────────────────────────────────────────────────────
+_cache_lock   = threading.Lock()
+_scenario_cache: dict = {}          # name → list of frames
+_active_scenario: str = "healthy_baseline"
+
+
+def _ensure_scenario(name: str):
+    """Pre-compute scenario history and store in cache."""
+    with _cache_lock:
+        if name not in _scenario_cache:
+            _scenario_cache[name] = get_scenario_history(name)
+    return _scenario_cache[name]
+
+
+def _compute_state_at_step(scenario_name: str, step: int) -> dict:
+    """
+    Full state computation for one step of a scenario.
+    Returns everything the frontend needs in one payload.
+    """
+    history = _ensure_scenario(scenario_name)
+    step = max(0, min(step, TOTAL_STEPS - 1))
+    frame = history[step]
+
+    # Score each service
+    service_results = {}
+    base_scores     = {}
+    signal_breakdown = {}
+    for svc_id, telemetry in frame.items():
+        result = score_service(telemetry)
+        service_results[svc_id] = result
+        base_scores[svc_id]     = result["score"]
+        signal_breakdown[svc_id] = result["signals"]
+
+    # Blast-radius propagation
+    propagated_scores = propagate(base_scores)
+    blast_radius = get_blast_radius(propagated_scores, base_scores)
+
+    # Annotate service results with propagated scores
+    for item in blast_radius:
+        svc = item["service_id"]
+        if svc in service_results:
+            service_results[svc]["propagated_score"] = item["score"]
+            service_results[svc]["propagated_delta"]  = item["propagated_delta"]
+
+    # System-level state
+    sys_state = compute_system_state(propagated_scores)
+
+    # Recommendations
+    recs = get_recommendations(
+        scenario_name,
+        sys_state["state"],
+        propagated_scores,
+        signal_breakdown
+    )
+
+    # EKG history: all steps up to and including current
+    ekg_history = []
+    for s in range(step + 1):
+        f = history[s]
+        step_base = {}
+        for svc_id, tel in f.items():
+            r = score_service(tel)
+            step_base[svc_id] = r["score"]
+        prop = propagate(step_base)
+        sys_s = compute_system_state(prop)
+        ekg_history.append({
+            "step":        s,
+            "system_score": sys_s["score"],
+            "system_state": sys_s["state"],
+            "service_scores": {svc: round(prop.get(svc, 0), 4)
+                                for svc in SERVICES},
+        })
+
+    return {
+        "scenario":      scenario_name,
+        "step":          step,
+        "total_steps":   TOTAL_STEPS,
+        "timestamp":     int(time.time()),
+        "system_state":  sys_state,
+        "services":      {
+            svc_id: {
+                "score":             res["score"],
+                "propagated_score":  res.get("propagated_score", res["score"]),
+                "state":             res["state"],
+                "color":             res["color"],
+                "signals":           res["signals"],
+                "top_signal":        res["top_signal"],
+                "telemetry":         res["telemetry"],
+            }
+            for svc_id, res in service_results.items()
+        },
+        "blast_radius":  blast_radius,
+        "recommendations": recs,
+        "ekg_history":   ekg_history,
+        "context":       get_scenario_context(scenario_name),
+    }
+
+
+# ── HTTP Handler ──────────────────────────────────────────────────────────────
+FRONTEND_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "frontend"
+)
+
+MIME = {
+    ".html": "text/html; charset=utf-8",
+    ".js":   "application/javascript",
+    ".css":  "text/css",
+    ".json": "application/json",
+    ".png":  "image/png",
+    ".ico":  "image/x-icon",
+}
+
+
+class PulseGridHandler(BaseHTTPRequestHandler):
+    def log_message(self, fmt, *args):
+        # Quieter logs
+        print(f"  [{self.log_date_time_string()}] {fmt % args}")
+
+    def _send_json(self, data, status=200):
+        body = json.dumps(data, default=str).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", len(body))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_file(self, path):
+        ext = os.path.splitext(path)[1].lower()
+        mime = MIME.get(ext, "application/octet-stream")
+        try:
+            with open(path, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Content-Length", len(body))
+            self.end_headers()
+            self.wfile.write(body)
+        except FileNotFoundError:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Not found")
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def do_GET(self):
+        parsed  = urlparse(self.path)
+        path    = parsed.path
+        params  = parse_qs(parsed.query)
+
+        # ── Root → serve index.html
+        if path in ("/", "/index.html"):
+            self._send_file(os.path.join(FRONTEND_DIR, "index.html"))
+            return
+
+        # ── Static assets
+        if path.startswith("/static/"):
+            fname = path[len("/static/"):]
+            self._send_file(os.path.join(FRONTEND_DIR, "static", fname))
+            return
+
+        # ── API: list scenarios
+        if path == "/api/scenarios":
+            self._send_json({"scenarios": list_scenarios(),
+                              "categories": list_categories()})
+            return
+
+        # ── API: graph topology
+        if path == "/api/graph":
+            nodes = [
+                {"id": svc_id, "label": meta["label"], "tier": meta["tier"],
+                 "x": meta["x"], "y": meta["y"]}
+                for svc_id, meta in SERVICES.items()
+            ]
+            edges = get_edges_for_render()
+            self._send_json({"nodes": nodes, "edges": edges})
+            return
+
+        # ── API: state at step
+        if path == "/api/state":
+            scenario = params.get("scenario", [_active_scenario])[0]
+            step     = int(params.get("step", ["0"])[0])
+            try:
+                state = _compute_state_at_step(scenario, step)
+                self._send_json(state)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+            return
+
+        # ── API: diagnostic questions schema
+        if path == "/api/questions":
+            self._send_json({"questions": QUESTIONS, "layers": LAYERS})
+            return
+
+        # ── 404
+        self.send_response(404)
+        self.end_headers()
+        self.wfile.write(b"Not found")
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        path   = parsed.path
+        params = parse_qs(parsed.query)
+
+        if path == "/api/scenario/load":
+            name = params.get("name", ["healthy_baseline"])[0]
+            _ensure_scenario(name)
+            self._send_json({"status": "ok", "scenario": name,
+                              "total_steps": TOTAL_STEPS})
+            return
+
+        # ── API: run diagnostic
+        if path == "/api/diagnose":
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                body   = self.rfile.read(length) if length else b"{}"
+                responses = json.loads(body)
+                result = diagnose(responses)
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+            return
+
+        # ── API: chat assistant for diagnostic + scenario follow-ups
+        if path == "/api/chat":
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                body   = self.rfile.read(length) if length else b"{}"
+                payload = json.loads(body) if body else {}
+                mode = payload.get("mode", "scenario")
+                message = payload.get("message", "")
+                scenario = payload.get("scenario") or _active_scenario
+                responses = payload.get("responses") or {}
+                step = payload.get("step")
+                current_question = payload.get("current_question")
+
+                scenario_context = get_scenario_context(scenario) if scenario else {}
+                scenario_state = None
+                if mode == "scenario" and scenario:
+                    requested_step = payload.get("scenario_step")
+                    if requested_step is None:
+                        requested_step = TOTAL_STEPS - 1
+                    try:
+                        scenario_state = _compute_state_at_step(scenario, int(requested_step))
+                    except Exception:
+                        scenario_state = None
+
+                reply = answer_chat(
+                    message=message,
+                    mode=mode,
+                    scenario=scenario,
+                    responses=responses,
+                    step=step,
+                    current_question=current_question,
+                    scenario_context=scenario_context,
+                    scenario_state=scenario_state,
+                )
+                self._send_json({"reply": reply})
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+            return
+
+        self.send_response(404)
+        self.end_headers()
+
+
+def run(host="0.0.0.0", port=8765):
+    # Pre-warm all scenarios
+    print("  PulseGrid — pre-computing scenarios...")
+    for name in ("healthy_baseline", "retry_storm", "dns_degradation",
+                 "queue_backlog", "regional_divergence", "hurricane_datacenter",
+                 "power_grid_brownout", "seismic_failure", "bgp_route_leak",
+                 "regulatory_reroute", "cdn_sanctions",
+                 "vendor_capacity_crunch", "cost_cut_redundancy"):
+        _ensure_scenario(name)
+        print(f"    ✓ {name}")
+
+    server = HTTPServer((host, port), PulseGridHandler)
+    print(f"\n  ┌─────────────────────────────────────────┐")
+    print(f"  │  PulseGrid running at http://{host}:{port}  │")
+    print(f"  └─────────────────────────────────────────┘\n")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\n  PulseGrid stopped.")
+        server.server_close()
