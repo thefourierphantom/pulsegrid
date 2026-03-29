@@ -28,7 +28,7 @@ from engine.recommendations import get_recommendations
 from simulator.scenarios    import (get_scenario_history, get_scenario_context,
                                     list_scenarios, list_categories, TOTAL_STEPS)
 from engine.chain           import diagnose, LAYERS, QUESTIONS
-from engine.chatbot         import answer_chat
+from engine.chatbot         import answer_chat, extract_and_diagnose
 
 # ── Global scenario cache ─────────────────────────────────────────────────────
 _cache_lock   = threading.Lock()
@@ -272,6 +272,27 @@ class PulseGridHandler(BaseHTTPRequestHandler):
                 step = payload.get("step")
                 current_question = payload.get("current_question")
 
+                # ── Free-text bypass: if diagnostic mode and message describes incident,
+                #    extract signals and return full diagnosis so frontend can skip wizard
+                if mode == "diagnostic" and message:
+                    bypass = extract_and_diagnose(message)
+                    if bypass is not None:
+                        self._send_json({
+                            "reply":       bypass["narrative"],
+                            "full_result": bypass["full_result"],
+                            "scenario":    bypass["scenario"],
+                            "risk_score":  bypass["risk_score"],
+                            "risk_state":  bypass["risk_state"],
+                        })
+                        return
+
+                # Extra context fields from enriched cbSend payload
+                chain_summary = payload.get("chain_summary", "")
+                blast_radius_summary = payload.get("blast_radius", "")
+                top_action = payload.get("top_action", "")
+                client_risk_state = payload.get("risk_state", "")
+                client_risk_score = payload.get("risk_score", 0)
+
                 scenario_context = get_scenario_context(scenario) if scenario else {}
                 scenario_state = None
                 if mode == "scenario" and scenario:
@@ -283,8 +304,25 @@ class PulseGridHandler(BaseHTTPRequestHandler):
                     except Exception:
                         scenario_state = None
 
+                    # Inject client-side chain/blast context into scenario_state so
+                    # the system prompt gets enriched even when demo mode is active
+                    if scenario_state and (chain_summary or blast_radius_summary):
+                        scenario_state["_chain_summary"]  = chain_summary
+                        scenario_state["_blast_summary"]  = blast_radius_summary
+                        scenario_state["_top_action"]     = top_action
+
+                # Augment message with extra context when provided
+                augmented_message = message
+                if mode == "scenario" and chain_summary:
+                    augmented_message = (
+                        f"{message}\n\n[Context: chain={chain_summary} | "
+                        f"blast={blast_radius_summary} | "
+                        f"risk={client_risk_state} {round(float(client_risk_score)*100)}% | "
+                        f"top_action={top_action[:100]}]"
+                    )
+
                 reply = answer_chat(
-                    message=message,
+                    message=augmented_message,
                     mode=mode,
                     scenario=scenario,
                     responses=responses,

@@ -6,10 +6,10 @@
 <title>PulseGrid AI — Cloud Failure Intelligence</title>
 <style>
 :root{
-  --bg:#07080c;--surface:#0f1117;--surface2:#161924;--border:#1e2230;
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
   --accent:#6366f1;--accent2:#8b5cf6;
   --green:#34d399;--yellow:#fbbf24;--orange:#fb923c;--red:#ef4444;--purple:#a78bfa;
-  --text:#e2e8f0;--muted:#4b5563;--dim:#94a3b8;
+  --text:#e6edf3;--muted:#6e7681;--dim:#8b949e;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;}
@@ -17,7 +17,31 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .screen.active{display:flex;}
 
 /* ─── WELCOME ─────────────────────────────────────── */
-#screen-welcome{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;position:relative;}
+#screen-welcome{flex-direction:column;align-items:center;justify-content:flex-start;padding:52px 20px 48px;text-align:center;position:relative;overflow-y:auto;}
+.unified-wrap{width:100%;max-width:600px;margin-bottom:32px;position:relative;}
+.unified-input-outer{display:flex;gap:0;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;margin-bottom:10px;box-shadow:0 4px 24px rgba(0,0,0,.25);}
+.unified-input-outer:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.12);}
+.unified-input{flex:1;background:transparent;border:none;padding:14px 16px;color:var(--text);font-size:14px;outline:none;font-family:inherit;resize:none;line-height:1.5;min-height:52px;}
+.unified-input::placeholder{color:var(--muted);}
+.unified-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;padding:14px 20px;cursor:pointer;color:white;font-size:13px;font-weight:700;white-space:nowrap;transition:opacity .2s;flex-shrink:0;}
+.unified-btn:hover{opacity:.88;}
+.unified-hints{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.hint-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--dim);cursor:pointer;transition:all .15s;}
+.hint-pill:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.08);}
+.or-divider{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);margin-bottom:20px;width:100%;max-width:600px;}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.home-scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:720px;margin-bottom:16px;}
+@media(max-width:640px){.home-scenarios{grid-template-columns:repeat(2,1fr);}}
+.hs-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:left;cursor:pointer;transition:all .15s;}
+.hs-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,.15);}
+.hs-icon{font-size:18px;margin-bottom:6px;}
+.hs-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.hs-desc{font-size:10px;color:var(--muted);line-height:1.4;}
+.hs-view-all{grid-column:1/-1;background:transparent;border:1px dashed var(--border);border-radius:12px;padding:11px;text-align:center;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;}
+.hs-view-all:hover{border-color:var(--accent);color:var(--accent);}
+.guided-link{font-size:11px;color:var(--muted);margin-top:6px;}
+.guided-link a{color:var(--accent);cursor:pointer;text-decoration:none;}
+.guided-link a:hover{text-decoration:underline;}
 .grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(99,102,241,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;position:relative;}
 .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(99,102,241,.35);}
@@ -36,8 +60,38 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .card-desc{font-size:12px;color:var(--muted);line-height:1.5;}
 .welcome-footer{color:var(--muted);font-size:12px;position:relative;}
 
-/* ─── CHAT ─────────────────────────────────────────── */
-#screen-chat{flex-direction:column;max-width:720px;margin:0 auto;width:100%;padding:0 20px;max-height:100vh;}
+/* ─── SPLIT DIAGNOSTIC BUILD LAYOUT ─────────── */
+#screen-chat{flex-direction:row!important;max-width:none;width:100%;padding:0;max-height:100vh;}
+.split-left{width:390px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);max-height:100vh;overflow:hidden;background:var(--bg);padding:0 16px;}
+.split-right{flex:1;overflow-y:auto;padding:22px 26px 48px;background:var(--surface2);min-width:0;}
+@media(max-width:860px){#screen-chat{flex-direction:column!important;}.split-left{width:100%;max-height:48vh;border-right:none;border-bottom:1px solid var(--border);}.split-right{padding:14px;}}
+
+/* Live layer cards */
+.live-layer{display:flex;gap:11px;padding:11px 13px;border-radius:10px;background:var(--surface);border:1px solid var(--border);margin-bottom:6px;transition:border-color .4s,opacity .35s,background .3s;opacity:.4;}
+.live-layer.unlocked{opacity:1;background:var(--surface);animation:fadeIn .4s ease forwards;}
+.ll-badge{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;margin-top:1px;}
+.ll-body{flex:1;min-width:0;}
+.ll-label{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:3px;}
+.ll-items{display:flex;flex-direction:column;gap:2px;}
+.ll-item{font-size:11px;color:var(--muted);line-height:1.4;}
+.live-layer.unlocked .ll-item{color:var(--dim);}
+.ll-sev{font-size:9px;font-weight:700;letter-spacing:.5px;flex-shrink:0;align-self:flex-start;padding-top:3px;}
+.ll-wait{font-size:10px;color:var(--border);font-style:italic;}
+.live-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;}
+.live-headline{font-size:18px;font-weight:800;margin-bottom:3px;line-height:1.3;}
+.live-sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
+.split-complete-banner{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.22);border-radius:9px;padding:9px 13px;margin-bottom:10px;font-size:12px;color:var(--green);font-weight:600;}
+.split-followup-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:10px 0 6px;}
+.split-quick-btns{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.split-quick-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:11px;color:var(--dim);cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;width:100%;}
+.split-quick-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.05);}
+
+/* ─── CHAT (legacy style kept for shared elements) ───── */
+#screen-chat .chat-header{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;}
+#screen-chat .messages{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column;gap:14px;}
+#screen-chat .input-row{padding:10px 0 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
+
+/* ─── CHAT (original standalone styles) ───────────── */
 .chat-header{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;}
 .chat-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .chat-title{font-weight:700;font-size:14px;}
@@ -254,6 +308,8 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
 .cb-input:focus{border-color:var(--accent);}
 .cb-input::placeholder{color:var(--muted);}
 .cb-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:9px;padding:8px 14px;color:white;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.cb-quick-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11px;color:var(--dim);cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;}
+.cb-quick-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.08);}
 
 /* ─── SIGNAL OBSERVATION CARDS ───────────────────── */
 .ld-signal-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;}
@@ -273,6 +329,25 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
 /* ─── STATS SOURCE NOTE ──────────────────────────── */
 .stats-source{font-size:10px;color:var(--muted);text-align:right;margin-bottom:8px;}
 .stats-source a{color:var(--accent);text-decoration:none;}
+
+/* ─── INCIDENT BRIEF CARD ────────────────────────── */
+.incident-brief{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(239,68,68,.06));border:1.5px solid rgba(99,102,241,.35);border-radius:16px;padding:22px 26px;margin-bottom:20px;display:none;position:relative;overflow:hidden;box-shadow:0 4px 32px rgba(99,102,241,.12);}
+.incident-brief::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--red),var(--accent2));}
+.incident-brief.visible{display:block;}
+.ib-row{display:flex;align-items:flex-start;gap:18px;}
+.ib-left{flex:1;min-width:0;}
+.ib-tag{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.ib-tag::before{content:'●';color:var(--red);font-size:8px;animation:blink 1.5s infinite;}
+.ib-summary{font-size:14px;color:var(--text);line-height:1.7;font-weight:400;}
+.ib-right{flex-shrink:0;min-width:200px;}
+.ib-blast-title{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.ib-blast-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.ib-blast-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.ib-blast-name{font-size:11px;color:var(--dim);flex:1;}
+.ib-blast-pct{font-size:11px;font-weight:700;}
+.ib-action{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);}
+.ib-action-label{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#ef4444;margin-bottom:5px;}
+.ib-action-text{font-size:12px;color:var(--dim);line-height:1.6;}
 
 /* ─── MIT ITEM EXPANDED ──────────────────────────── */
 .mit-item{display:flex;gap:7px;font-size:12px;color:var(--dim);margin-bottom:10px;line-height:1.6;align-items:flex-start;}
@@ -303,51 +378,109 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
     </div>
     <div class="brand-name">Pulse<span class="brand-ai">Grid AI</span></div>
   </div>
-  <div class="hero-title"><span class="hero-grad">Tell us what's wrong.<br>We'll trace it to the root.</span></div>
-  <div class="hero-sub">Cloud failure intelligence across 7 layers — from geopolitical pressure to the exact service that broke.</div>
-  <div class="cards">
-    <div class="card primary" onclick="startDiagnostic()">
-      <div class="card-badge">Recommended</div>
-      <div class="card-icon">🔍</div>
-      <div class="card-title">Diagnose an Incident</div>
-      <div class="card-desc">Answer 5 questions. We'll identify what happened, what's breaking now, and what to do next.</div>
+  <div class="hero-title"><span class="hero-grad">Describe what's wrong.<br>We'll trace it to the root.</span></div>
+  <div class="hero-sub">Type a symptom, a signal, or an incident — PulseGrid maps it across 7 failure layers and tells you what to do next.</div>
+
+  <!-- ── Unified input ── -->
+  <div class="unified-wrap">
+    <div class="unified-input-outer">
+      <textarea class="unified-input" id="unified-input"
+        placeholder="e.g. 'auth timeouts spiking after deploy, retries climbing' or 'queue depth growing faster than workers can drain'"
+        onkeydown="unifiedKey(event)" rows="2"></textarea>
+      <button class="unified-btn" onclick="submitUnified()">Analyze →</button>
     </div>
-    <div class="card" onclick="showDemo()">
-      <div class="card-icon">⚡</div>
-      <div class="card-title">Load a Scenario</div>
-      <div class="card-desc">Explore 13 pre-built scenarios — from hurricane datacenter outages to BGP route leaks.</div>
+    <div class="unified-hints">
+      <span class="hint-pill" onclick="fillHint('retries spiking after deploy, auth errors climbing')">retries spiking</span>
+      <span class="hint-pill" onclick="fillHint('cache node down, database getting overwhelmed')">cache failure</span>
+      <span class="hint-pill" onclick="fillHint('queue backlog growing, workers maxed out')">queue backlog</span>
+      <span class="hint-pill" onclick="fillHint('one region degraded, other regions fine')">regional split</span>
+      <span class="hint-pill" onclick="fillHint('autoscale failing, vendor capacity exhausted')">capacity crunch</span>
     </div>
+    <div class="guided-link">Prefer guided questions? <a onclick="startDiagnostic()">Answer 5 quick questions instead →</a></div>
   </div>
+
+  <!-- ── Or choose a scenario ── -->
+  <div class="or-divider">or jump to a pre-built scenario</div>
+  <div class="home-scenarios">
+    <div class="hs-card" onclick="loadDemo('retry_storm','Retry Storm')">
+      <div class="hs-icon">🔁</div>
+      <div class="hs-name">Retry Storm</div>
+      <div class="hs-desc">Auth failure triggers cascading retries, saturating thread pools</div>
+    </div>
+    <div class="hs-card" onclick="loadDemo('cost_cut_redundancy','Cost-Cut Redundancy')">
+      <div class="hs-icon">💸</div>
+      <div class="hs-name">Cost-Cut Redundancy</div>
+      <div class="hs-desc">Removed cache replica exposes single point of failure under load</div>
+    </div>
+    <div class="hs-card" onclick="loadDemo('hurricane_datacenter','Hurricane Datacenter')">
+      <div class="hs-icon">🌀</div>
+      <div class="hs-name">Hurricane Datacenter</div>
+      <div class="hs-desc">Physical datacenter threat with no pre-staged regional failover</div>
+    </div>
+    <div class="hs-card" onclick="loadDemo('vendor_capacity_crunch','Vendor Capacity Crunch')">
+      <div class="hs-icon">⚡</div>
+      <div class="hs-name">Vendor Capacity Crunch</div>
+      <div class="hs-desc">Cloud region compute exhausted — autoscale returns InsufficientCapacity</div>
+    </div>
+    <div class="hs-card" onclick="loadDemo('queue_backlog','Queue Backlog')">
+      <div class="hs-icon">📦</div>
+      <div class="hs-name">Queue Backlog</div>
+      <div class="hs-desc">Consumer processing falls below ingestion — jobs pile up for hours</div>
+    </div>
+    <div class="hs-card" onclick="loadDemo('bgp_route_leak','BGP Route Leak')">
+      <div class="hs-icon">🌐</div>
+      <div class="hs-name">BGP Route Leak</div>
+      <div class="hs-desc">Misconfigured peer misdirects traffic, adding 80–200ms per hop</div>
+    </div>
+    <div class="hs-view-all" onclick="showDemo()">View all 13 scenarios →</div>
+  </div>
+
   <div class="welcome-footer">HackUSF 2026 · Built on the Failure Propagation Chain framework</div>
 </div>
 
-<!-- ═══════════ CHAT ══════════════════════════════════ -->
-<div id="screen-chat" class="screen" style="max-height:100vh;">
-  <div class="chat-header">
-    <div class="chat-logo">
-      <svg width="17" height="17" viewBox="0 0 32 32" fill="none">
-        <path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+<!-- ═══════════ CHAT / LIVE BUILD ════════════════════ -->
+<div id="screen-chat" class="screen">
+
+  <!-- ── Left: Q&A wizard (becomes follow-up chatbot after diagnosis) ── -->
+  <div class="split-left">
+    <div class="chat-header">
+      <div class="chat-logo">
+        <svg width="17" height="17" viewBox="0 0 32 32" fill="none">
+          <path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="chat-title">PulseGrid AI</div>
+        <div class="chat-status" id="chat-status-line"><span class="status-dot"></span>Building your failure chain</div>
+      </div>
+      <div class="hdr-spacer"></div>
+      <div class="progress-wrap" id="prog-wrap">
+        <div class="progress-label" id="prog-label">0 / 5</div>
+        <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
     </div>
-    <div>
-      <div class="chat-title">PulseGrid AI</div>
-      <div class="chat-status"><span class="status-dot"></span>Analyzing</div>
-    </div>
-    <div class="hdr-spacer"></div>
-    <div class="progress-wrap">
-      <div class="progress-label" id="prog-label">0 / 5</div>
-      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="messages" id="messages"></div>
+    <div class="input-row">
+      <textarea class="chat-input" id="chat-input" placeholder="Add context or describe your situation…" onkeydown="handleKey(event)"></textarea>
+      <button class="send-btn" onclick="sendText()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
     </div>
   </div>
-  <div class="messages" id="messages"></div>
-  <div class="input-row">
-    <textarea class="chat-input" id="chat-input" placeholder="Add context or describe your situation…" onkeydown="handleKey(event)"></textarea>
-    <button class="send-btn" onclick="sendText()">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-      </svg>
-    </button>
+
+  <!-- ── Right: Live dashboard builds as answers come in ── -->
+  <div class="split-right" id="split-right">
+    <div id="live-dash">
+      <!-- Initialized by initLiveDash() when diagnostic starts -->
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:12px;opacity:.4;">
+        <svg width="48" height="48" viewBox="0 0 32 32" fill="none"><path d="M4 16L10 8L16 20L22 10L28 16" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div style="font-size:14px;color:var(--muted);">Your failure chain will build here as you answer questions.</div>
+      </div>
+    </div>
   </div>
+
 </div>
 
 <!-- ═══════════ DEMO PICKER ══════════════════════════ -->
@@ -404,27 +537,52 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
     </div>
   </div>
 
+  <!-- INCIDENT BRIEF CARD -->
+  <div class="incident-brief" id="incident-brief">
+    <div class="ib-row">
+      <div class="ib-left">
+        <div class="ib-tag">Incident Brief</div>
+        <div class="ib-summary" id="ib-summary">—</div>
+        <div class="ib-action">
+          <div class="ib-action-label">🔴 Do This Now</div>
+          <div class="ib-action-text" id="ib-action-text">—</div>
+        </div>
+      </div>
+      <div class="ib-right">
+        <div class="ib-blast-title">Blast Radius</div>
+        <div id="ib-blast-rows">—</div>
+      </div>
+    </div>
+  </div>
+
   <!-- CHATBOT STRIP -->
   <div class="cb-strip">
     <div class="cb-strip-header" onclick="toggleChatbot()">
       <div class="cb-icon">💬</div>
       <div class="cb-hdr-title">Ask PulseGrid AI a follow-up question</div>
-      <div class="cb-hdr-hint">How long will this take? Who do I notify? What's a circuit breaker?</div>
+      <div class="cb-hdr-hint">Dig deeper on cause, fix, or next steps</div>
       <div class="cb-chevron" id="cb-chevron">▼</div>
     </div>
     <div class="cb-body" id="cb-body">
       <div class="cb-msgs" id="cb-msgs">
-        <div class="cb-msg-ai" id="cb-welcome-msg">Diagnosis loaded. Ask me anything about this incident — what caused it, how to fix it, who to notify, or what specific steps look like in practice.</div>
+        <div class="cb-msg-ai" id="cb-welcome-msg">Diagnosis loaded. What do you want to know?</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 16px 0;">
+        <button class="cb-quick-btn" onclick="cbQuick('What caused this in simple terms?')">What caused this in simple terms?</button>
+        <button class="cb-quick-btn" onclick="cbQuick('What should I do in the next 5 minutes?')">What should I do in the next 5 minutes?</button>
+        <button class="cb-quick-btn" onclick="cbQuick('What service is most at risk next?')">What service is most at risk next?</button>
+        <button class="cb-quick-btn" onclick="cbQuick('Who should I notify?')">Who should I notify?</button>
+        <button class="cb-quick-btn" onclick="cbQuick('How long will this take to resolve?')">How long will this take?</button>
       </div>
       <div class="cb-input-row">
-        <input class="cb-input" id="cb-input" placeholder="e.g. 'Who should I notify?' or 'What's a circuit breaker?'" onkeydown="cbKey(event)">
+        <input class="cb-input" id="cb-input" placeholder="Ask anything about this incident…" onkeydown="cbKey(event)">
         <button class="cb-send" onclick="cbSend()">Ask →</button>
       </div>
     </div>
   </div>
 
   <!-- STATS BAR -->
-  <div class="stats-source">Benchmarks derived from PagerDuty State of Digital Operations (n=15,000+), Atlassian Incident Management Report, Google SRE case studies, and internal scenario modelling. Values represent population medians for this failure class.</div>
+  <div class="stats-source">Benchmarks are scenario-aligned estimates informed by PagerDuty, Atlassian, Google SRE case studies, and internal modeling. <span title="These values represent illustrative benchmark ranges for this failure class — not exact measurements from a specific population." style="cursor:help;border-bottom:1px dotted var(--muted);">Illustrative benchmark ranges ⓘ</span></div>
   <div class="stats-bar" id="stats-bar">
     <div class="stat-tile"><div class="stat-tile-val" id="st-mttd">—</div><div class="stat-tile-lbl">Avg Time to Detect</div><div class="stat-tile-sub" id="st-mttd-sub"></div></div>
     <div class="stat-tile"><div class="stat-tile-val" id="st-mttr">—</div><div class="stat-tile-lbl">Avg Time to Resolve</div><div class="stat-tile-sub" id="st-mttr-sub"></div></div>
@@ -482,6 +640,8 @@ const S = {
   demos: null,
   activeResult: null,
   activeLayerIdx: null,
+  diagnosisComplete: false,
+  partialResult: null,
 };
 
 // ──────────────────────────────────────────────
@@ -498,12 +658,222 @@ function go(id) {
 }
 
 // ──────────────────────────────────────────────
+//  LIVE DASHBOARD — progressive build during diagnosis
+// ──────────────────────────────────────────────
+
+// Which layers unlock after each question step (1-indexed)
+// Q1=user_impact→L5, Q2=telemetry→L4, Q3=trigger→L2, Q4=structural→L1+L3, Q5=external→all
+const STEP_UNLOCKS = { 1:[5], 2:[5,4], 3:[5,4,2], 4:[5,4,2,1,3], 5:[0,1,2,3,4,5,6] };
+
+const LAYER_WAIT_TEXT = [
+  'Waiting for external driver context…',
+  'Waiting for structural signal…',
+  'Waiting for triggering event…',
+  'Waiting for stress mechanics data…',
+  'Waiting for telemetry signals…',
+  'Waiting for user impact…',
+  'Waiting for business context…',
+];
+
+function initLiveDash() {
+  const el = document.getElementById('live-dash');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="live-eyebrow">Live Analysis — Building</div>
+    <div class="live-headline" id="live-headline">Answer the questions to build your failure chain.</div>
+    <div class="live-sub" id="live-sub">Each answer reveals another layer of the incident.</div>
+    <div id="live-layers">
+      ${LAYER_META.map((l,i)=>`
+        <div class="live-layer" id="ll-${i}">
+          <div class="ll-badge" style="background:${l.color}18;color:${l.color}">L${i}</div>
+          <div class="ll-body">
+            <div class="ll-label">${l.label}</div>
+            <div class="ll-items" id="ll-items-${i}">
+              <span class="ll-wait">${LAYER_WAIT_TEXT[i]}</span>
+            </div>
+          </div>
+          <div class="ll-sev" id="ll-sev-${i}"></div>
+        </div>`).join('')}
+    </div>
+    <div id="live-complete-area"></div>
+  `;
+}
+
+function activateLiveLayer(idx, layer) {
+  if (idx < 0 || idx > 6) return;
+  const el       = document.getElementById(`ll-${idx}`);
+  const itemsEl  = document.getElementById(`ll-items-${idx}`);
+  const sevEl    = document.getElementById(`ll-sev-${idx}`);
+  if (!el) return;
+  const color = (layer && layer.color) || LAYER_META[idx]?.color || '#6366f1';
+  el.classList.add('unlocked');
+  el.style.borderColor = color + '45';
+  el.style.background  = color + '06';
+  if (itemsEl && layer) {
+    const items = (layer.items || []).filter(x => x && !x.startsWith('No specific factor'));
+    itemsEl.innerHTML = items.length
+      ? items.map(item=>`<div class="ll-item">· ${esc(item)}</div>`).join('')
+      : `<div class="ll-item" style="font-style:italic;color:var(--muted);">Minimal activity at this layer</div>`;
+  }
+  if (sevEl && layer && layer.severity) {
+    const col = {low:'#34d399',medium:'#fbbf24',high:'#fb923c',critical:'#ef4444'}[layer.severity]||'#6366f1';
+    sevEl.textContent = layer.severity.toUpperCase();
+    sevEl.style.color = col;
+  }
+}
+
+async function updateLiveDash() {
+  if (!document.getElementById('live-layers')) return;
+  try {
+    const result = await api('/api/diagnose', { method:'POST', body: JSON.stringify(S.answers) });
+    if (result.error) return;
+    const norm = normalizeResult(result);
+    S.partialResult = norm;
+
+    // Update headline with trending scenario
+    const hl  = document.getElementById('live-headline');
+    const sub = document.getElementById('live-sub');
+    if (hl && norm.matched_scenario && norm.matched_scenario !== 'healthy_baseline') {
+      const pct = Math.round((norm.risk_score||0)*100);
+      hl.innerHTML = `Trending: <span style="color:var(--accent)">${esc(norm.scenario_label)}</span>`;
+      if (sub) {
+        const rCol = norm.risk_score >= .75 ? 'var(--red)' : norm.risk_score >= .5 ? 'var(--orange)' : 'var(--yellow)';
+        sub.innerHTML = `<span style="color:${rCol};font-weight:600;">${pct}% composite risk</span> · ${norm.risk_state||'analyzing'}`;
+      }
+    }
+    // Unlock layers earned by current step
+    (STEP_UNLOCKS[S.step] || []).forEach(li => activateLiveLayer(li, norm.chain[li]));
+  } catch(e) {}
+}
+
+async function completeLiveDash(result) {
+  // Unlock every layer
+  (result.chain || []).forEach((layer, i) => activateLiveLayer(i, layer));
+
+  // Final headline
+  const hl  = document.getElementById('live-headline');
+  const sub = document.getElementById('live-sub');
+  if (hl) hl.innerHTML = `<span style="color:var(--accent)">${esc(result.scenario_label)}</span>`;
+  if (sub) {
+    const pct  = Math.round((result.risk_score||0)*100);
+    const rCol = result.risk_score >= .75 ? 'var(--red)' : result.risk_score >= .5 ? 'var(--orange)' : 'var(--yellow)';
+    sub.innerHTML = `<span style="color:${rCol};font-weight:700;">${pct}% risk · ${(result.risk_state||'').toUpperCase()}</span> — Diagnosis complete`;
+  }
+
+  // Compact incident brief + CTA
+  const now     = (result.mitigation?.now?.[0] || '').split('\n')[0].trim();
+  const summary = result.summary || '';
+  const cArea   = document.getElementById('live-complete-area');
+  if (cArea) {
+    cArea.innerHTML = `
+      <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;">Incident Brief</div>
+        <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(239,68,68,.06));border:1.5px solid rgba(99,102,241,.3);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;margin-bottom:14px;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--red));"></div>
+          <div style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:${now?'12px':'0'}">${summary}</div>
+          ${now?`<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06);">
+            <div style="font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--red);margin-bottom:4px;">🔴 Do This Now</div>
+            <div style="font-size:12px;color:var(--dim);line-height:1.6;">${esc(now)}</div>
+          </div>`:''}
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-bottom:7px;" onclick="finalizeToResults()">
+          Open Full Analysis with Layer Explorer →
+        </button>
+        <button class="btn btn-ghost" style="width:100%;" onclick="go('screen-welcome')">← New Diagnosis</button>
+      </div>`;
+  }
+
+  // Switch left panel to follow-up chatbot
+  switchToFollowUp(result);
+}
+
+function switchToFollowUp(result) {
+  // Update status line
+  const statusLine = document.getElementById('chat-status-line');
+  if (statusLine) statusLine.innerHTML = '<span class="status-dot"></span>Diagnosis complete';
+
+  // Hide progress bar
+  const pw = document.getElementById('prog-wrap');
+  if (pw) pw.style.display = 'none';
+
+  // Inject completion banner + quick-action buttons into messages
+  const wrap = document.getElementById('messages');
+  if (wrap) {
+    const div = document.createElement('div');
+    div.className = 'fade';
+    div.innerHTML = `
+      <div class="split-complete-banner">✓ Failure chain mapped — 7 layers analyzed</div>
+      <div class="split-followup-label">Ask a follow-up</div>
+      <div class="split-quick-btns">
+        <button class="split-quick-btn" onclick="splitFollowUp('What caused this in simple terms?')">What caused this in simple terms?</button>
+        <button class="split-quick-btn" onclick="splitFollowUp('What should I do in the next 5 minutes?')">What should I do in the next 5 minutes?</button>
+        <button class="split-quick-btn" onclick="splitFollowUp('What service is most at risk next?')">What service is most at risk next?</button>
+        <button class="split-quick-btn" onclick="splitFollowUp('Who should I notify?')">Who should I notify?</button>
+      </div>`;
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  // Update input placeholder
+  const inp = document.getElementById('chat-input');
+  if (inp) inp.placeholder = 'Ask anything about this incident…';
+
+  S.diagnosisComplete = true;
+  S.activeResult = result;
+}
+
+async function splitFollowUp(question) {
+  const wrap = document.getElementById('messages');
+  if (!wrap) return;
+
+  const uEl = document.createElement('div');
+  uEl.className = 'msg user fade';
+  uEl.innerHTML = `<div class="avatar">👤</div><div class="msg-body"><div class="msg-from">You</div><div class="bubble">${esc(question)}</div></div>`;
+  wrap.appendChild(uEl);
+  wrap.scrollTop = wrap.scrollHeight;
+
+  const typing = aiMsg('<span style="color:var(--muted)">…</span>');
+  try {
+    const r   = S.activeResult || {};
+    const resp = await api('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        mode:          'scenario',
+        message:       question,
+        scenario:      r.matched_scenario || '',
+        scenario_step: 20,
+        chain_summary: (r.chain||[]).map(l=>`L${l.number} ${l.label}: ${(l.items||[]).slice(0,2).join('; ')}`).join(' | '),
+        top_action:    (r.mitigation?.now?.[0]||'').slice(0,200),
+        risk_state:    r.risk_state || '',
+        risk_score:    r.risk_score || 0,
+      })
+    });
+    const reply = (resp && resp.reply) ? resp.reply : cbAnswer(question);
+    typing.querySelector('.bubble').innerHTML = esc(reply).replace(/\n/g,'<br>');
+  } catch(e) {
+    typing.querySelector('.bubble').textContent = cbAnswer(question);
+  }
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function finalizeToResults() {
+  const result = S.activeResult || S.partialResult;
+  if (!result) { go('screen-results'); return; }
+  renderResults(result);
+  go('screen-results');
+}
+
+// ──────────────────────────────────────────────
 //  WELCOME → START DIAGNOSTIC
 // ──────────────────────────────────────────────
 async function startDiagnostic() {
   go('screen-chat');
   clearMsgs();
   S.step = 0; S.answers = {};
+  S.diagnosisComplete = false;
+  S.partialResult = null;
+  S.activeResult = null;
+  initLiveDash();
   updateProg();
 
   try {
@@ -515,8 +885,74 @@ async function startDiagnostic() {
   }
 
   await wait(350);
-  aiMsg("I'm PulseGrid AI — I trace cloud incidents across <strong>7 failure layers</strong>, from external world events down to business impact.\n\nLet's start with what users are experiencing right now.");
+  aiMsg("I'm PulseGrid AI. Tell me what's happening and I'll trace it from root cause to business impact — seven layers deep.\n\nFirst: what are users experiencing right now?");
   await wait(500);
+  askQ();
+}
+
+// ──────────────────────────────────────────────
+//  UNIFIED ENTRY (welcome screen)
+// ──────────────────────────────────────────────
+function fillHint(text) {
+  const el = document.getElementById('unified-input');
+  if (el) { el.value = text; el.focus(); }
+}
+
+function unifiedKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitUnified(); }
+}
+
+async function submitUnified() {
+  const input = document.getElementById('unified-input');
+  const txt = (input ? input.value : '').trim();
+  if (!txt) { startDiagnostic(); return; }
+
+  // Attempt NLP bypass: if enough signal, jump straight to results
+  go('screen-loading');
+  await animateLoad(450);
+
+  try {
+    const resp = await api('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        mode: 'diagnostic',
+        message: txt,
+        step: 0,
+        current_question: null,
+        responses: {},
+      })
+    });
+
+    if (resp && resp.full_result) {
+      const norm = normalizeResult(resp.full_result);
+      norm.narrative = resp.reply;
+      renderResults(norm);
+      go('screen-results');
+      return;
+    }
+  } catch(e) {}
+
+  // Fallback: go to guided chat wizard with text pre-seeded in context
+  go('screen-chat');
+  clearMsgs();
+  S.step = 0; S.answers = {};
+  S.diagnosisComplete = false;
+  S.partialResult = null;
+  S.activeResult = null;
+  initLiveDash();
+  updateProg();
+
+  try {
+    const d = await api('/api/questions');
+    S.questions = d.questions || [];
+  } catch(e) {
+    aiMsg("⚠️ Can't reach the analysis engine. Make sure the server is running and refresh.");
+    return;
+  }
+
+  await wait(350);
+  aiMsg(`Got it — let me ask a few questions to trace this fully.\n\nFirst: what are users experiencing right now?`);
+  await wait(400);
   askQ();
 }
 
@@ -760,6 +1196,7 @@ async function submitAns(ids, label) {
   S.answers[q.id] = q.type === 'single' ? ids[0] : ids;
   S.step++;
   updateProg();
+  updateLiveDash(); // fire-and-forget progressive dash update
   await wait(150);
   userMsg(label);
 
@@ -785,10 +1222,14 @@ async function sendText() {
   const txt = input.value.trim();
   if (!txt) return;
   input.value = '';
+
+  // Post-diagnosis: route all text to follow-up chatbot in split-left
+  if (S.diagnosisComplete) { splitFollowUp(txt); return; }
+
   userMsg(txt);
 
   const q = S.questions[S.step] || null;
-  const typing = aiMsg('<span style="color:var(--muted)">Thinking…</span>');
+  const typing = aiMsg('<span style="color:var(--muted)">Analyzing…</span>');
   try {
     const resp = await api('/api/chat', {
       method: 'POST',
@@ -800,6 +1241,21 @@ async function sendText() {
         responses: S.answers,
       })
     });
+
+    // FREE-TEXT BYPASS: if backend extracted enough signals, jump to results
+    if (resp && resp.full_result) {
+      typing.querySelector('.bubble').innerHTML =
+        '<strong>Incident recognized.</strong> Running full chain analysis…';
+      await wait(600);
+      go('screen-loading');
+      await animateLoad(500);
+      const norm = normalizeResult(resp.full_result);
+      norm.narrative = resp.reply; // attach AI-written narrative for incident brief
+      renderResults(norm);
+      go('screen-results');
+      return;
+    }
+
     const reply = (resp && resp.reply) ? resp.reply : 'I can clarify the incident, explain terms, or summarize what your answers imply.';
     typing.querySelector('.bubble').innerHTML = esc(reply).replace(/\n/g, '<br>');
   } catch (e) {
@@ -817,15 +1273,12 @@ function handleKey(e) {
 async function runDiagnosis() {
   aiMsg("I have everything I need. Running full chain analysis now…");
   await wait(300);
-  go('screen-loading');
-  await animateLoad(650);
   try {
     const result = await api('/api/diagnose', { method:'POST', body: JSON.stringify(S.answers) });
     if (result.error) throw new Error(result.error);
-    renderResults(normalizeResult(result));
-    go('screen-results');
+    const norm = normalizeResult(result);
+    await completeLiveDash(norm);
   } catch(e) {
-    go('screen-chat');
     aiMsg(`⚠️ Analysis failed: ${e.message}`);
   }
 }
@@ -872,9 +1325,9 @@ function normalizeResult(d) {
 // ──────────────────────────────────────────────
 const SCENARIO_DATA = {
   retry_storm: {
-    stats:{ mttd:'4 min', mttd_sub:'PagerDuty State of Digital Ops 2023 — retry-class incidents, n=2,341', mttr:'22 min', mttr_sub:'p50 with circuit breaker; p95 is 47 min without',
-      esc:'78%', esc_sub:'Teams with no circuit breaker — Google SRE incident corpus', svcs:'4 / 7', svcs_sub:'Frontend, Gateway, Auth, DB',
-      rate:'3.2×/mo', rate_sub:'Atlassian State of Incident Management — teams with fixed-interval retry policy' },
+    stats:{ mttd:'~4 min', mttd_sub:'Illustrative benchmark — retry-class incidents, industry incident data', mttr:'~22 min', mttr_sub:'Scenario-aligned reference; materially longer without circuit breaker',
+      esc:'~78%', esc_sub:'Scenario-aligned reference — no circuit breaker configured', svcs:'4 / 7', svcs_sub:'Frontend, Gateway, Auth, DB',
+      rate:'~3×/mo', rate_sub:'Illustrative benchmark — fixed-interval retry policy environments' },
     agentSteps:[
       'Query auth service error logs → confirm deployment regression as root cause',
       'Enable circuit breaker on auth upstream in API Gateway (timeout: 3s, threshold: 20% errors, recovery: 30s)',
@@ -918,9 +1371,9 @@ const SCENARIO_DATA = {
   },
 
   cost_cut_redundancy: {
-    stats:{ mttd:'12 min', mttd_sub:'Catchpoint SRE Report 2023 — cache-failure incidents misattributed to traffic', mttr:'38 min', mttr_sub:'Median with manual cache failover procedure in place',
-      esc:'91%', esc_sub:'Atlassian data — single-node cache failures that reach DB exhaustion', svcs:'6 / 7', svcs_sub:'All except Frontend',
-      rate:'1.1×/mo', rate_sub:'Google SRE Book — rate after cost-reduction cycles without redundancy review' },
+    stats:{ mttd:'~12 min', mttd_sub:'Illustrative benchmark — cache failures often misattributed early', mttr:'~38 min', mttr_sub:'Scenario-aligned reference — manual failover procedure required',
+      esc:'~91%', esc_sub:'Scenario-aligned reference — single-node cache reaching DB exhaustion', svcs:'6 / 7', svcs_sub:'All except Frontend',
+      rate:'~1×/mo', rate_sub:'Illustrative benchmark — post cost-reduction cycles, no redundancy review' },
     agentSteps:[
       'Confirm cache node offline status via ElastiCache / Redis health API',
       'Provision emergency cache replica from latest snapshot in same AZ (est. 5–8 min)',
@@ -964,9 +1417,9 @@ const SCENARIO_DATA = {
   },
 
   hurricane_datacenter: {
-    stats:{ mttd:'18 min', mttd_sub:'CNCF Survey — physical infrastructure events vs software events', mttr:'4–48 hrs', mttr_sub:'PagerDuty — range depends entirely on DR readiness at time of event',
-      esc:'94%', esc_sub:'Google SRE Book — physical datacenter events without pre-emptive failover', svcs:'7 / 7', svcs_sub:'Full stack at risk',
-      rate:'0.3×/yr', rate_sub:'NOAA storm frequency data × single-region Gulf Coast deployments' },
+    stats:{ mttd:'~18 min', mttd_sub:'Illustrative benchmark — physical infrastructure vs software detection lag', mttr:'4–48 hrs', mttr_sub:'Scenario-aligned range — entirely dependent on DR readiness',
+      esc:'~94%', esc_sub:'Scenario-aligned reference — no pre-emptive regional failover', svcs:'7 / 7', svcs_sub:'Full stack at risk',
+      rate:'< 1×/yr', rate_sub:'Illustrative benchmark — regional weather event frequency' },
     agentSteps:[
       'Pull NHC hurricane track → confirm datacenter intersection probability',
       'Initiate database streaming replication to us-west-2 (or configured DR region)',
@@ -1010,9 +1463,9 @@ const SCENARIO_DATA = {
   },
 
   vendor_capacity_crunch: {
-    stats:{ mttd:'8 min', mttd_sub:'AWS Health Dashboard — InstanceLimitExceeded errors visible in CloudWatch', mttr:'45 min', mttr_sub:'PagerDuty 2024 data — cloud capacity events, requires regional pivot',
-      esc:'85%', esc_sub:'Atlassian report — capacity-constrained incidents without multi-region fallback', svcs:'5 / 7', svcs_sub:'Gateway, Worker, Queue, Auth, DB',
-      rate:'2.1×/mo', rate_sub:'AWS re:Invent capacity data — AI compute demand surge incidents, 2024' },
+    stats:{ mttd:'~8 min', mttd_sub:'Illustrative benchmark — InstanceLimitExceeded typically visible in CloudWatch', mttr:'~45 min', mttr_sub:'Scenario-aligned reference — requires regional pivot or instance family change',
+      esc:'~85%', esc_sub:'Scenario-aligned reference — no multi-region fallback configured', svcs:'5 / 7', svcs_sub:'Gateway, Worker, Queue, Auth, DB',
+      rate:'~2×/mo', rate_sub:'Illustrative benchmark — compute demand surge environments, 2024 data' },
     agentSteps:[
       'Query EC2 DescribeInstanceTypeOfferings → identify available instance types in neighboring AZs',
       'Attempt scale-out using alternative instance family (c5 → c6i, t3 → t4g Graviton)',
@@ -1055,9 +1508,9 @@ const SCENARIO_DATA = {
   },
 
   queue_backlog: {
-    stats:{ mttd:'6 min', mttd_sub:'Queue depth is a lagging indicator', mttr:'18 min', mttr_sub:'With autoscale or manual worker addition',
-      esc:'72%', esc_sub:'Escalate if workers not added within 10 min', svcs:'3 / 7', svcs_sub:'Queue, Worker, Database',
-      rate:'4.8×/mo', rate_sub:'Highly variable — spikes with traffic events' },
+    stats:{ mttd:'~6 min', mttd_sub:'Illustrative benchmark — queue depth is a lagging indicator', mttr:'~18 min', mttr_sub:'Scenario-aligned reference — with worker scaling action',
+      esc:'~72%', esc_sub:'Scenario-aligned reference — escalation risk without worker addition', svcs:'3 / 7', svcs_sub:'Queue, Worker, Database',
+      rate:'Variable', rate_sub:'Illustrative benchmark — spikes with traffic events' },
     layers:[
       {narrative:'Queue backlog typically originates from either a traffic spike that exceeded expected load or a reduction in worker capacity. External factors (marketing campaign, viral event, holiday traffic) or internal decisions (worker count reduction, worker deployment failure) can both cause this pattern.',evidence:[{l:'Traffic anomaly detected',v:'Yes — 2.3× spike',pct:80}],stats:[{n:'2.3×',l:'Traffic spike multiplier'},{n:'6 min',l:'Time to detection'}],actions:['Identify whether this is traffic-driven or capacity-driven — the fix is different for each']},
       {narrative:'No circuit breaker exists between the queue producer and the worker pool. When workers fall behind, producers continue enqueuing at full rate with no backpressure mechanism. Auto-scaling group is configured with a 5-minute cooldown, too slow for sudden spikes.',evidence:[{l:'Backpressure mechanism',v:'None',pct:0},{l:'Autoscale cooldown',v:'5 min (too slow)',pct:30}],stats:[{n:'None',l:'Backpressure mechanism'},{n:'5 min',l:'Autoscale cooldown delay'}],actions:['Implement producer-side backpressure: if queue depth >5000, throttle enqueue rate','Reduce autoscale cooldown to 60 seconds for queue-depth trigger']},
@@ -1070,9 +1523,9 @@ const SCENARIO_DATA = {
   },
 
   bgp_route_leak: {
-    stats:{ mttd:'14 min', mttd_sub:'Network-level issues are hard to detect at app layer', mttr:'35 min', mttr_sub:'BGP convergence + provider remediation',
-      esc:'68%', esc_sub:'Geographic containment possible if detected early', svcs:'4 / 7', svcs_sub:'Frontend, Gateway, Auth, CDN layer',
-      rate:'0.4×/mo', rate_sub:'Industry-wide — not preventable unilaterally' },
+    stats:{ mttd:'~14 min', mttd_sub:'Illustrative benchmark — network-layer issues detected later than app-layer', mttr:'~35 min', mttr_sub:'Scenario-aligned reference — BGP convergence + provider remediation',
+      esc:'~68%', esc_sub:'Scenario-aligned reference — geographic containment possible if detected early', svcs:'4 / 7', svcs_sub:'Frontend, Gateway, Auth, CDN layer',
+      rate:'< 1×/mo', rate_sub:'Illustrative benchmark — industry-wide, not preventable unilaterally' },
     layers:[
       {narrative:'A BGP route leak at a peer or upstream transit provider is causing your traffic to be misdirected through an unintended network path. This is a global internet routing issue — not specific to your infrastructure. However, your architecture has no BGP monitoring or anycast failover that would detect or recover from this automatically.',evidence:[{l:'BGP anomaly source',v:'Upstream transit peer',pct:70},{l:'Route monitoring',v:'Not implemented',pct:0}],stats:[{n:'External',l:'Failure origin'},{n:'None',l:'BGP monitoring in place'}],actions:['Implement BGP monitoring via RIPE NCC, BGPmon, or Cloudflare Radar alerts','Consider anycast routing for critical endpoints to provide natural route resilience']},
       {narrative:'No alternative routing path exists for your primary endpoints. Traffic is single-homed through a single upstream provider. Your CDN has no health-check-based failover to detect routing anomalies. DNS TTLs are set at 3600 seconds — far too long to execute a rapid failover if needed.',evidence:[{l:'Upstream provider diversity',v:'1 provider',pct:0},{l:'DNS TTL for primary endpoints',v:'3600s (too slow for failover)',pct:10},{l:'CDN health check routing',v:'Not configured',pct:0}],stats:[{n:'1',l:'Upstream network provider'},{n:'3600s',l:'DNS TTL (too slow)'}],actions:['Reduce DNS TTL to 60s for critical endpoints to enable rapid failover','Provision a secondary upstream provider for network-layer redundancy']},
@@ -1153,9 +1606,75 @@ function renderResults(r) {
   // Services
   renderServices(r.service_scores || {});
 
+  // Incident brief card
+  renderIncidentBrief(r);
+
   // Auto-select first active layer
   const firstActive = (r.chain||[]).findIndex(l => l.severity !== 'low') || 0;
   setTimeout(() => selectLayer(firstActive < 0 ? 0 : firstActive), 300);
+}
+
+function renderIncidentBrief(r) {
+  const card = document.getElementById('incident-brief');
+  if (!card) return;
+
+  // Summary: use narrative if available (from free-text bypass), else chain summary
+  const summaryEl = document.getElementById('ib-summary');
+  const summary = r.narrative || r.summary || '';
+  // Use innerHTML so <strong> tags from demoSummary() render properly
+  if (summaryEl) summaryEl.innerHTML = summary || 'Analysis complete.';
+
+  // Top immediate action (first item from mitigation.now)
+  const actionEl = document.getElementById('ib-action-text');
+  if (actionEl) {
+    const now = (r.mitigation && r.mitigation.now && r.mitigation.now.length)
+      ? r.mitigation.now[0]
+      : ((r.chain || []).find(l => l.severity === 'critical') || {}).items?.[0] || '';
+    actionEl.textContent = now ? now.split('\n')[0].trim() : '—';
+  }
+
+  // Blast radius services
+  const blastEl = document.getElementById('ib-blast-rows');
+  if (blastEl) {
+    const scores = r.service_scores || {};
+    const blast = r.blast_radius || [];
+    const SVC_LABELS = {frontend:'Frontend',api_gateway:'API Gateway',auth:'Auth',cache:'Cache',queue:'Queue',worker:'Worker',database:'Database'};
+    let rows = '';
+    if (blast.length) {
+      const top = blast.sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
+      rows = top.map(b => {
+        const pct = Math.round((b.score||0)*100);
+        const col = pct >= 70 ? '#ef4444' : pct >= 40 ? '#fb923c' : '#fbbf24';
+        const name = SVC_LABELS[b.service_id] || b.service_id;
+        return `<div class="ib-blast-row">
+          <div class="ib-blast-dot" style="background:${col}"></div>
+          <div class="ib-blast-name">${esc(name)}</div>
+          <div class="ib-blast-pct" style="color:${col}">${pct}%</div>
+        </div>`;
+      }).join('');
+    } else if (Object.keys(scores).length) {
+      const top = Object.entries(scores).sort(([,a],[,b])=>b-a).slice(0,5);
+      rows = top.map(([id,sc]) => {
+        const pct = Math.round(sc*100);
+        const col = pct >= 70 ? '#ef4444' : pct >= 40 ? '#fb923c' : '#fbbf24';
+        return `<div class="ib-blast-row">
+          <div class="ib-blast-dot" style="background:${col}"></div>
+          <div class="ib-blast-name">${esc(SVC_LABELS[id]||id)}</div>
+          <div class="ib-blast-pct" style="color:${col}">${pct}%</div>
+        </div>`;
+      }).join('');
+    } else {
+      rows = '<div style="font-size:11px;color:var(--muted)">Run a scenario for service-level breakdown.</div>';
+    }
+    blastEl.innerHTML = rows;
+  }
+
+  // Show card if there's meaningful content
+  if (summary || r.mitigation?.now?.length) {
+    card.classList.add('visible');
+  } else {
+    card.classList.remove('visible');
+  }
 }
 
 function renderLayerList(chain, scenarioId) {
@@ -1340,6 +1859,12 @@ function toggleChatbot() {
 
 function cbKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); cbSend(); } }
 
+function cbQuick(text) {
+  const input = document.getElementById('cb-input');
+  if (input) { input.value = text; }
+  cbSend();
+}
+
 const CB_FAQ = {
   retry_storm: [
     {k:['why','escalation','risk','high'],a:'Escalation risk is 78% because retry storms are self-amplifying — each minute without a circuit breaker adds compounding load. Teams without backoff policies typically escalate to P0 within 8–12 minutes as database connection pools fill. Source: PagerDuty incident data, 2,300+ retry-class incidents.'},
@@ -1428,18 +1953,28 @@ async function cbSend() {
   input.value = '';
 
   try {
-    const scenarioId = S.activeResult ? S.activeResult.matched_scenario : '';
-    const scenarioStep = S.activeResult && typeof S.activeResult.scenario_step !== 'undefined' ? S.activeResult.scenario_step : 31;
-    const resp = await api('/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        mode: 'scenario',
-        message: q,
-        scenario: scenarioId,
-        scenario_step: scenarioStep,
-      })
-    });
-    typing.textContent = (resp && resp.reply) ? resp.reply : cbAnswer(q);
+    const r = S.activeResult || {};
+    const scenarioId   = r.matched_scenario || '';
+    const scenarioStep = typeof r.scenario_step !== 'undefined' ? r.scenario_step : 31;
+
+    // Build rich context to send so the AI has everything it needs
+    const payload = {
+      mode:           'scenario',
+      message:        q,
+      scenario:       scenarioId,
+      scenario_step:  scenarioStep,
+      // Pass chain summary + mitigation so the backend prompt has full context
+      chain_summary:  (r.chain || []).map(l => `L${l.number} ${l.label}: ${(l.items||[]).slice(0,2).join('; ')}`).join(' | '),
+      blast_radius:   (r.blast_radius || []).slice(0,5).map(b => `${b.service_id}=${Math.round((b.score||0)*100)}%`).join(', '),
+      top_action:     (r.mitigation?.now?.[0] || '').slice(0, 200),
+      risk_state:     r.risk_state || '',
+      risk_score:     r.risk_score || 0,
+    };
+
+    const resp = await api('/api/chat', { method: 'POST', body: JSON.stringify(payload) });
+    const reply = (resp && resp.reply) ? resp.reply : cbAnswer(q);
+    typing.textContent = '';
+    typing.innerHTML = esc(reply).replace(/\n/g, '<br>');
   } catch (e) {
     typing.textContent = cbAnswer(q);
   }
