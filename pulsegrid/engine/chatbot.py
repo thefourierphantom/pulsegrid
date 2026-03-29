@@ -448,6 +448,8 @@ RESPONSE RULES:
 4. If someone asks what to do, give numbered steps with real tool-specific commands.
 5. If asked about prevention, give infrastructure-level changes, not general advice.
 6. Tone: confident SRE, not a help desk. Short paragraphs, no fluff.
+7. Diagnosis is NOT multiple choice. Derive conclusions from evidence first, and only mention known scenarios as secondary similarity references.
+8. Prioritize root structural conditions over downstream amplification effects unless amplification is explicitly evidenced.
 """
 
     if mode == "diagnostic":
@@ -521,9 +523,15 @@ def open_ended_diagnose(description: str, extracted_signals: Dict[str, Any]) -> 
         f"Incident description: {description}\n\n"
         f"Extracted signals: {signals_summary or 'none extracted — use the description directly'}\n\n"
         f"Analyze this incident using the 7-layer Failure Propagation Chain.\n"
+        f"This is NOT a multiple-choice classification task.\n"
+        f"Derive a primary diagnosis label from evidence. You may generate a new diagnosis label.\n"
+        f"Do not infer retry storms, queue saturation, or missing circuit breakers unless evidence explicitly supports them.\n"
+        f"Root structural conditions must take precedence over downstream effects.\n"
         f"Return ONLY valid JSON with this exact structure (no markdown, no code blocks):\n"
         f"{{\n"
         f'  "incident_name": "short descriptive name (3-5 words, no hyphens)",\n'
+        f'  "primary_diagnosis": "evidence-derived root diagnosis label",\n'
+        f'  "closest_known_scenario_match": "optional known scenario id or empty string",\n'
         f'  "risk_score": 0.0,\n'
         f'  "risk_state": "healthy|degraded|critical|cascading",\n'
         f'  "summary": "2-3 sentences: what is happening, why, what breaks next",\n'
@@ -593,9 +601,11 @@ def open_ended_diagnose(description: str, extracted_signals: Dict[str, Any]) -> 
     scenario_id   = incident_name.lower().replace(" ", "_").replace("-", "_")[:40]
 
     return {
-        "matched_scenario":  scenario_id,
+        "matched_scenario":  data.get("closest_known_scenario_match") or scenario_id,
         "scenario_label":    incident_name,
         "match_confidence":  12,
+        "primary_diagnosis": data.get("primary_diagnosis", incident_name),
+        "closest_known_scenario_match": data.get("closest_known_scenario_match") or "",
         "risk_score":        risk_score,
         "risk_state":        risk_state,
         "risk_color":        risk_color,
@@ -650,8 +660,13 @@ def extract_and_diagnose(message: str) -> Optional[Dict[str, Any]]:
                 "risk_state":   oe["risk_state"],
             }
 
-    # If score is too low to match anything meaningful, return None
-    if diag["matched_scenario"] == "healthy_baseline" and diag["match_confidence"] < 2:
+    # If evidence is extremely sparse, return None (allowing wizard to continue).
+    if (
+        diag["matched_scenario"] == "healthy_baseline"
+        and diag["match_confidence"] < 2
+        and diag.get("confidence") == "low"
+        and diag.get("primary_diagnosis") == "No Clear Incident Pattern"
+    ):
         return None
 
     scenario = diag["matched_scenario"]
@@ -666,7 +681,8 @@ def extract_and_diagnose(message: str) -> Optional[Dict[str, Any]]:
     user_prompt = (
         f"Incident description: {message}\n\n"
         f"Signals extracted: {signals_found}\n"
-        f"Matched scenario: {scenario} (confidence {diag['match_confidence']}, "
+        f"Primary diagnosis: {diag.get('primary_diagnosis', scenario)}\n"
+        f"Closest known scenario: {scenario} (confidence {diag['match_confidence']}, "
         f"risk {round(diag['risk_score']*100)}%)\n\n"
         f"Write a 3-paragraph incident brief:\n"
         f"1. What is happening and why (root cause chain)\n"
