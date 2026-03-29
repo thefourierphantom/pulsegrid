@@ -43,6 +43,14 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .unified-input::placeholder{color:var(--muted);font-size:13px;}
 .unified-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;padding:14px 22px;cursor:pointer;color:white;font-size:13px;font-weight:700;white-space:nowrap;transition:opacity .2s;flex-shrink:0;letter-spacing:.3px;}
 .unified-btn:hover{opacity:.88;}
+.attach-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px 0;}
+.attach-btn{background:var(--surface2);border:1px solid var(--border);color:var(--dim);border-radius:9px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.attach-btn:hover{border-color:var(--accent);color:var(--accent);}
+.attach-note{font-size:10px;color:var(--muted);}
+.attach-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.attach-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.28);color:var(--dim);font-size:10px;padding:4px 8px;border-radius:999px;}
+.attach-chip button{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0 0 1px;}
+.attach-chip button:hover{color:var(--red);}
 .unified-hints{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:4px;}
 .hint-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:11px;color:var(--dim);cursor:pointer;transition:all .15s;}
 .hint-pill:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.08);}
@@ -157,6 +165,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .chat-input::placeholder{color:var(--muted);}
 .send-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:11px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s;}
 .send-btn:hover{opacity:.85;}
+.send-stack{display:flex;gap:8px;align-items:stretch;width:100%;}
+.send-stack .chat-input{flex:1;}
 
 .typing-wrap{display:flex;gap:4px;padding:8px 12px;}
 .t-dot{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:tdot 1.2s infinite;}
@@ -480,6 +490,12 @@ Know what to do next.</span></div>
         onkeydown="unifiedKey(event)" rows="2"></textarea>
       <button class="unified-btn" onclick="submitUnified()">Generate Dashboard →</button>
     </div>
+    <div class="attach-row">
+      <input id="unified-file-input" type="file" accept=".txt,.log,.md,.json,.csv,image/*" multiple style="display:none" onchange="onUnifiedFilesSelected(event)">
+      <button class="attach-btn" onclick="openUnifiedFilePicker()">📎 Add file / screenshot</button>
+      <span class="attach-note">Up to 3 files · 4MB each</span>
+    </div>
+    <div class="attach-chips" id="unified-attach-chips"></div>
     <div class="unified-hints">
       <span class="hint-pill" onclick="fillHint('retries spiking after deploy, auth errors climbing, no circuit breaker')">retry storm</span>
       <span class="hint-pill" onclick="fillHint('cache node removed, database connections exhausted under load')">cache failure</span>
@@ -598,12 +614,22 @@ Know what to do next.</span></div>
     </div>
     <div class="messages" id="messages"></div>
     <div class="input-row">
-      <textarea class="chat-input" id="chat-input" placeholder="Add context or describe your situation…" onkeydown="handleKey(event)"></textarea>
-      <button class="send-btn" onclick="sendText()">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-      </button>
+      <div style="width:100%;">
+        <div class="attach-row" style="margin:0 0 6px 0;">
+          <input id="chat-file-input" type="file" accept=".txt,.log,.md,.json,.csv,image/*" multiple style="display:none" onchange="onChatFilesSelected(event)">
+          <button class="attach-btn" onclick="openChatFilePicker()">📎 Attach</button>
+          <span class="attach-note">Supports logs, text files, screenshots</span>
+        </div>
+        <div class="attach-chips" id="chat-attach-chips" style="margin-bottom:6px;"></div>
+        <div class="send-stack">
+          <textarea class="chat-input" id="chat-input" placeholder="Add context or describe your situation…" onkeydown="handleKey(event)"></textarea>
+          <button class="send-btn" onclick="sendText()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -779,7 +805,11 @@ const S = {
   activeLayerIdx: null,
   diagnosisComplete: false,
   partialResult: null,
+  unifiedAttachments: [],
+  chatAttachments: [],
 };
+
+const FILE_LIMITS = { maxFiles: 3, maxBytes: 4 * 1024 * 1024, maxImageBytes: 2 * 1024 * 1024, maxTextChars: 8000 };
 
 // ──────────────────────────────────────────────
 //  NAVIGATION
@@ -792,6 +822,102 @@ function go(id) {
   }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+}
+
+function bytesToSize(bytes) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function openUnifiedFilePicker() {
+  document.getElementById('unified-file-input')?.click();
+}
+
+function openChatFilePicker() {
+  document.getElementById('chat-file-input')?.click();
+}
+
+function renderAttachmentChips(targetId, list, removeFnName) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  if (!list.length) { el.innerHTML = ''; return; }
+  el.innerHTML = list.map((f, idx) =>
+    `<span class="attach-chip">${esc(f.name)} · ${bytesToSize(f.size)} <button onclick="${removeFnName}(${idx})" title="Remove">×</button></span>`
+  ).join('');
+}
+
+function removeUnifiedAttachment(idx) {
+  S.unifiedAttachments.splice(idx, 1);
+  renderAttachmentChips('unified-attach-chips', S.unifiedAttachments, 'removeUnifiedAttachment');
+}
+
+function removeChatAttachment(idx) {
+  S.chatAttachments.splice(idx, 1);
+  renderAttachmentChips('chat-attach-chips', S.chatAttachments, 'removeChatAttachment');
+}
+
+async function normalizeFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return [];
+  const picked = files.slice(0, FILE_LIMITS.maxFiles);
+  const out = [];
+
+  for (const file of picked) {
+    if (file.size > FILE_LIMITS.maxBytes) continue;
+
+    const base = { name: file.name, type: file.type || 'application/octet-stream', size: file.size };
+    if (file.type.startsWith('text/') || /\.(txt|log|md|json|csv)$/i.test(file.name)) {
+      try {
+        const text = await file.text();
+        out.push({ ...base, text_excerpt: text.slice(0, FILE_LIMITS.maxTextChars) });
+      } catch {
+        out.push(base);
+      }
+      continue;
+    }
+
+    if (file.type.startsWith('image/') && file.size <= FILE_LIMITS.maxImageBytes) {
+      try {
+        const b64 = await fileToDataUrl(file);
+        out.push({ ...base, image_base64: b64 });
+      } catch {
+        out.push(base);
+      }
+      continue;
+    }
+
+    out.push(base);
+  }
+  return out.slice(0, FILE_LIMITS.maxFiles);
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onUnifiedFilesSelected(e) {
+  const normalized = await normalizeFiles(e.target.files);
+  S.unifiedAttachments = normalized;
+  renderAttachmentChips('unified-attach-chips', S.unifiedAttachments, 'removeUnifiedAttachment');
+  e.target.value = '';
+}
+
+async function onChatFilesSelected(e) {
+  const normalized = await normalizeFiles(e.target.files);
+  S.chatAttachments = normalized;
+  renderAttachmentChips('chat-attach-chips', S.chatAttachments, 'removeChatAttachment');
+  e.target.value = '';
+}
+
+function attachmentSummary(list) {
+  if (!list || !list.length) return '';
+  return `\n\n[Attachments: ${list.map(f => esc(f.name)).join(', ')}]`;
 }
 
 // ──────────────────────────────────────────────
@@ -959,7 +1085,7 @@ function switchToFollowUp(result) {
   S.activeResult = result;
 }
 
-async function splitFollowUp(question) {
+async function splitFollowUp(question, attachments=[]) {
   const wrap = document.getElementById('messages');
   if (!wrap) return;
 
@@ -977,6 +1103,7 @@ async function splitFollowUp(question) {
       body: JSON.stringify({
         mode:          'scenario',
         message:       question,
+        attachments,
         scenario:      r.matched_scenario || '',
         scenario_step: 20,
         chain_summary: (r.chain||[]).map(l=>`L${l.number} ${l.label}: ${(l.items||[]).slice(0,2).join('; ')}`).join(' | '),
@@ -1003,14 +1130,22 @@ function finalizeToResults() {
 // ──────────────────────────────────────────────
 //  WELCOME → START DIAGNOSTIC
 // ──────────────────────────────────────────────
-// startDiagnostic([preText]) — optionally pass the user's initial prompt to skip answered questions
-async function startDiagnostic(preText) {
+// startDiagnostic([prePayload]) — optionally pass initial text + attachments
+async function startDiagnostic(prePayload) {
+  const initial = typeof prePayload === 'string'
+    ? { text: prePayload, attachments: [] }
+    : (prePayload || { text: null, attachments: [] });
+  const preText = (initial.text || '').trim();
+  const preAttachments = initial.attachments || [];
+
   go('screen-chat');
   clearMsgs();
   S.step = 0; S.answers = {};
   S.diagnosisComplete = false;
   S.partialResult = null;
   S.activeResult = null;
+  S.chatAttachments = [];
+  renderAttachmentChips('chat-attach-chips', S.chatAttachments, 'removeChatAttachment');
   initLiveDash();
   updateProg();
 
@@ -1023,17 +1158,20 @@ async function startDiagnostic(preText) {
   }
 
   // Smart skip + immediate dashboard build from initial description
-  if (preText && preText.trim().length >= 8) {
-    const trimmed = preText.trim();
+  if (preText.length >= 8 || preAttachments.length) {
+    const trimmed = preText;
 
     // Show the user's input in chat right away
     const uEl = document.createElement('div');
     uEl.className = 'msg user fade';
-    uEl.innerHTML = `<div class="avatar">👤</div><div class="msg-body"><div class="msg-from">You</div><div class="bubble">${esc(trimmed)}</div></div>`;
+    uEl.innerHTML = `<div class="avatar">👤</div><div class="msg-body"><div class="msg-from">You</div><div class="bubble">${esc(trimmed || 'Attached context submitted.')}${attachmentSummary(preAttachments)}</div></div>`;
     document.getElementById('messages')?.appendChild(uEl);
 
     try {
-      const ext = await api(`/api/extract?message=${encodeURIComponent(trimmed)}`);
+      const ext = await api('/api/extract', {
+        method: 'POST',
+        body: JSON.stringify({ message: trimmed, attachments: preAttachments }),
+      });
       if (ext && ext.pre_answers && Object.keys(ext.pre_answers).length > 0) {
         Object.assign(S.answers, ext.pre_answers);
         const skippable = new Set(ext.skippable || []);
@@ -1056,7 +1194,7 @@ async function startDiagnostic(preText) {
         const skipped = Object.keys(ext.pre_answers).length;
         const remaining = S.questions.length - S.step;
         await wait(250);
-        aiMsg(`Mapped ${skipped} signal${skipped>1?'s':''} from your description — dashboard building on the right. ${remaining} question${remaining>1?'s':''} to complete the full chain.`);
+        aiMsg(`Mapped ${skipped} signal${skipped>1?'s':''} from your description${preAttachments.length ? ' + attachments' : ''} — dashboard building on the right. ${remaining} question${remaining>1?'s':''} to complete the full chain.`);
         await wait(400);
         askQ();
         return;
@@ -1086,7 +1224,10 @@ async function submitUnified() {
   const input = document.getElementById('unified-input');
   const txt = (input ? input.value : '').trim();
   // Always go directly to the split chat view — dashboard starts building immediately
-  await startDiagnostic(txt || null);
+  await startDiagnostic({ text: txt || null, attachments: S.unifiedAttachments.slice() });
+  S.unifiedAttachments = [];
+  renderAttachmentChips('unified-attach-chips', S.unifiedAttachments, 'removeUnifiedAttachment');
+  if (input) input.value = '';
 }
 
 // ──────────────────────────────────────────────
@@ -1407,17 +1548,20 @@ async function submitAns(ids, label) {
 async function sendText() {
   const input = document.getElementById('chat-input');
   const txt = input.value.trim();
+  const attached = S.chatAttachments.slice();
   const q = S.questions[S.step] || null;
 
   // Multi-select submit via send button with no typed text
-  if (!txt) {
+  if (!txt && !attached.length) {
     if (!S.diagnosisComplete && q && q.type === 'multi' && submitSelectedMultiIfAny()) return;
     return;
   }
   input.value = '';
+  S.chatAttachments = [];
+  renderAttachmentChips('chat-attach-chips', S.chatAttachments, 'removeChatAttachment');
 
   // Post-diagnosis: route all text to follow-up chatbot in split-left
-  if (S.diagnosisComplete) { splitFollowUp(txt); return; }
+  if (S.diagnosisComplete) { splitFollowUp(txt || 'Please analyze attached context.', attached); return; }
 
   // During wizard: treat typed message as an answer to the active question first
   const parsed = parseTypedAnswerForQuestion(txt, q);
@@ -1434,7 +1578,8 @@ async function sendText() {
     return;
   }
 
-  userMsg(txt);
+  userMsg(txt || 'Attached context submitted.');
+  if (attached.length) aiMsg(`<span style="color:var(--muted);font-size:12px;">Received attachments: ${esc(attached.map(f => f.name).join(', '))}</span>`);
 
   const typing = aiMsg('<span style="color:var(--muted)">Analyzing…</span>');
   try {
@@ -1443,6 +1588,7 @@ async function sendText() {
       body: JSON.stringify({
         mode: 'diagnostic',
         message: txt,
+        attachments: attached,
         step: S.step,
         current_question: q ? q.text : null,
         responses: S.answers,
@@ -1454,7 +1600,7 @@ async function sendText() {
       typing.querySelector('.bubble').innerHTML =
         '<strong>Incident recognized.</strong> Running full chain analysis…';
       await wait(600);
-      setLoadingContext(txt);
+      setLoadingContext(txt || attached.map(f => f.name).join(' '));
       go('screen-loading');
       await animateLoad(500);
       const norm = normalizeResult(resp.full_result);
