@@ -1170,10 +1170,14 @@ async function startDiagnostic(prePayload) {
     try {
       const ext = await api('/api/extract', {
         method: 'POST',
-        body: JSON.stringify({ message: trimmed, attachments: preAttachments }),
+        body: JSON.stringify({ message: trimmed, attachments: preAttachments, responses: S.answers }),
       });
       if (ext && ext.pre_answers && Object.keys(ext.pre_answers).length > 0) {
-        Object.assign(S.answers, ext.pre_answers);
+        for (const [qid, val] of Object.entries(ext.pre_answers)) {
+          const cur = S.answers[qid];
+          if ((Array.isArray(cur) && cur.length) || (!!cur && typeof cur === 'string')) continue;
+          S.answers[qid] = val;
+        }
         const skippable = new Set(ext.skippable || []);
         while (S.step < S.questions.length && skippable.has(S.questions[S.step].id)) {
           S.step++;
@@ -1193,8 +1197,9 @@ async function startDiagnostic(prePayload) {
 
         const skipped = Object.keys(ext.pre_answers).length;
         const remaining = S.questions.length - S.step;
+        const suggested = ext.suggested_answers ? Object.keys(ext.suggested_answers).length : 0;
         await wait(250);
-        aiMsg(`Mapped ${skipped} signal${skipped>1?'s':''} from your description${preAttachments.length ? ' + attachments' : ''} — dashboard building on the right. ${remaining} question${remaining>1?'s':''} to complete the full chain.`);
+        aiMsg(`Mapped ${skipped} high-confidence signal${skipped>1?'s':''} from your description${preAttachments.length ? ' + attachments' : ''}${suggested ? ` (plus ${suggested} suggested)` : ''} — dashboard building on the right. ${remaining} question${remaining>1?'s':''} to complete the full chain.`);
         await wait(400);
         askQ();
         return;
@@ -1580,6 +1585,51 @@ async function sendText() {
 
   userMsg(txt || 'Attached context submitted.');
   if (attached.length) aiMsg(`<span style="color:var(--muted);font-size:12px;">Received attachments: ${esc(attached.map(f => f.name).join(', '))}</span>`);
+
+  // During wizard, fold typed text + uploaded files into prefill pipeline immediately.
+  if (!S.diagnosisComplete && (txt || attached.length)) {
+    try {
+      const ext = await api('/api/extract', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: txt,
+          attachments: attached,
+          responses: S.answers,
+        }),
+      });
+
+      if (ext && ext.pre_answers && Object.keys(ext.pre_answers).length) {
+        for (const [qid, val] of Object.entries(ext.pre_answers)) {
+          const cur = S.answers[qid];
+          if ((Array.isArray(cur) && cur.length) || (!!cur && typeof cur === 'string')) continue;
+          S.answers[qid] = val;
+        }
+
+        const skippable = new Set(ext.skippable || []);
+        while (S.step < S.questions.length && skippable.has(S.questions[S.step].id)) S.step++;
+        updateProg();
+        updateLiveDash();
+
+        const skipped = Object.keys(ext.pre_answers).length;
+        const suggested = ext.suggested_answers ? Object.keys(ext.suggested_answers).length : 0;
+        aiMsg(`Updated diagnosis context from ${attached.length ? 'message + uploaded files' : 'message'}: ${skipped} auto-filled${suggested ? `, ${suggested} suggested` : ''}.`);
+
+        if (S.step >= S.questions.length) {
+          await wait(250);
+          aiMsg("High-confidence evidence has resolved all wizard dimensions. Running full chain analysis now…");
+          await runDiagnosis();
+          return;
+        }
+
+        await wait(250);
+        askQ();
+        return;
+      } else if (ext && ext.suggested_answers && Object.keys(ext.suggested_answers).length) {
+        const suggestedQs = Object.keys(ext.suggested_answers).length;
+        aiMsg(`<span style="color:var(--muted);font-size:12px;">Detected ${suggestedQs} lower-confidence suggested signal${suggestedQs>1?'s':''} from your message/uploaded context; keeping the current question to confirm.</span>`);
+      }
+    } catch(e) { /* continue with normal chat */ }
+  }
 
   const typing = aiMsg('<span style="color:var(--muted)">Analyzing…</span>');
   try {

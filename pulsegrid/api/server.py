@@ -28,7 +28,12 @@ from engine.recommendations import get_recommendations
 from simulator.scenarios    import (get_scenario_history, get_scenario_context,
                                     list_scenarios, list_categories, TOTAL_STEPS)
 from engine.chain           import diagnose, LAYERS, QUESTIONS
-from engine.chatbot         import answer_chat, extract_and_diagnose, extract_signals_for_wizard
+from engine.chatbot         import (
+    answer_chat,
+    extract_and_diagnose,
+    extract_signals_for_wizard,
+    extract_signals_for_wizard_inputs,
+)
 
 # ── Global scenario cache ─────────────────────────────────────────────────────
 _cache_lock   = threading.Lock()
@@ -64,6 +69,13 @@ def _compose_message_with_attachments(message: str, attachments) -> str:
     if base:
         return f"{base}\n\n" + "\n\n".join(blocks)
     return "\n\n".join(blocks)
+
+
+def _compose_attachment_text(attachments) -> str:
+    """
+    Flatten only attachment evidence into text for source-aware extraction.
+    """
+    return _compose_message_with_attachments("", attachments)
 
 
 def _ensure_scenario(name: str):
@@ -290,14 +302,33 @@ class PulseGridHandler(BaseHTTPRequestHandler):
                 payload = json.loads(body) if body else {}
                 message = (payload.get("message") or "").strip()
                 attachments = payload.get("attachments") or []
+                responses = payload.get("responses") or {}
+                attachment_text = _compose_attachment_text(attachments)
                 merged_message = _compose_message_with_attachments(message, attachments)
                 if not merged_message.strip():
-                    self._send_json({"pre_answers": {}, "skippable": [], "is_complete": False})
+                    self._send_json({
+                        "pre_answers": {},
+                        "suggested_answers": {},
+                        "skippable": [],
+                        "is_complete": False,
+                        "debug": {"confidence": {}, "sources": {"prompt": {}, "attachments": {}}},
+                    })
                     return
-                result = extract_signals_for_wizard(merged_message)
+                result = extract_signals_for_wizard_inputs(
+                    prompt_text=message,
+                    attachment_text=attachment_text,
+                    existing_answers=responses,
+                )
                 self._send_json(result)
             except Exception as e:
-                self._send_json({"pre_answers": {}, "skippable": [], "is_complete": False, "error": str(e)})
+                self._send_json({
+                    "pre_answers": {},
+                    "suggested_answers": {},
+                    "skippable": [],
+                    "is_complete": False,
+                    "debug": {"confidence": {}, "sources": {"prompt": {}, "attachments": {}}},
+                    "error": str(e),
+                })
             return
 
         if path == "/api/scenario/load":
