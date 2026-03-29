@@ -299,8 +299,9 @@ _SIGNAL_KEYWORDS: List[Tuple[str, str, str]] = [
     (r"\b(hardware|server.*fail|machine.*fail|disk|instance.*fail)\b",  "q_trigger",    "hardware"),
     (r"\b(weather|hurricane|earthquake|storm|seismic|power|flood|sanction|regulation)\b", "q_trigger", "external"),
     # q_structural
-    (r"\b(single.*point|one.*service.*everything|no.*backup.*service)\b","q_structural", "single_dep"),
-    (r"\b(no.*failover|no.*redundan|single.*region)\b",                  "q_structural", "no_failover"),
+    (r"\b(single.*point|one.*service.*everything|no.*backup.*service|dependency.*concentration|concentrated.*dependency|resolver.*concentration|shared.*resolver.*pool)\b","q_structural", "single_dep"),
+    (r"\b((critical|many|multiple).*(depend|rely).*(shared|single)|(shared|single).*(dns|resolver|service[\s-]?discover).*(depend|rely))\b", "q_structural", "single_dep"),
+    (r"\b(no.*failover|no.*redundan|single.*region|weak.*failover|limited.*redundan|insufficient.*redundan|redundanc.*concern|recommended.*redundanc|redundanc.*recommended)\b", "q_structural", "no_failover"),
     (r"\b(retry.*aggressive|no.*backoff|immediate.*retry)\b",            "q_structural", "bad_retries"),
     (r"\b(auto.?scal.*off|scal.*limit|no.*auto.?scal)\b",               "q_structural", "scale_limited"),
     (r"\b(no.*circuit.*break|circuit.*break.*off|no.*cb)\b",            "q_structural", "no_circuit"),
@@ -342,6 +343,23 @@ def _extract_signals_from_text(text: str) -> Dict[str, Any]:
                     responses[q_id].append(opt_id)
 
     return responses
+
+
+def _extract_signal_hits(text: str) -> Dict[str, Dict[str, int]]:
+    """
+    Returns per-question option hit counts from text.
+    Used for confidence-aware prefill and debugability.
+    """
+    lowered = (text or "").lower()
+    hits: Dict[str, Dict[str, int]] = {}
+    if not lowered.strip():
+        return hits
+
+    for pattern, q_id, opt_id in _SIGNAL_KEYWORDS:
+        if re.search(pattern, lowered):
+            q_hits = hits.setdefault(q_id, {})
+            q_hits[opt_id] = q_hits.get(opt_id, 0) + 1
+    return hits
 
 
 def _is_sufficient_for_diagnosis(text: str, extracted: Dict[str, Any]) -> bool:
@@ -499,6 +517,104 @@ def extract_signals_for_wizard(text: str) -> Dict[str, Any]:
         "pre_answers": pre_answers,
         "skippable":   skippable,
         "is_complete": is_complete,
+    }
+
+
+def extract_signals_for_wizard_inputs(
+    prompt_text: str,
+    attachment_text: str = "",
+    existing_answers: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Confidence-aware prefill extraction that combines:
+      - typed prompt text
+      - uploaded file text
+      - existing UI selections (explicit user choices)
+
+    Rules:
+      - Explicit user selections are never overridden.
+      - High-confidence inferences are auto-selected (pre_answers).
+      - Medium-confidence inferences are returned as suggested_answers.
+    """
+    existing_answers = existing_answers or {}
+    prompt_text = (prompt_text or "").strip()
+    attachment_text = (attachment_text or "").strip()
+    combined = "\n\n".join([t for t in (prompt_text, attachment_text) if t]).strip()
+    if not combined:
+        return {
+            "pre_answers": {},
+            "suggested_answers": {},
+            "skippable": [],
+            "is_complete": False,
+            "debug": {"confidence": {}, "sources": {"prompt": {}, "attachments": {}}},
+        }
+
+    prompt_hits = _extract_signal_hits(prompt_text)
+    attachment_hits = _extract_signal_hits(attachment_text)
+    combined_extracted = _extract_signals_from_text(combined)
+    is_complete = _is_sufficient_for_diagnosis(combined, combined_extracted)
+
+    pre_answers: Dict[str, Any] = {}
+    suggested_answers: Dict[str, Any] = {}
+    skippable: List[str] = []
+    confidence_debug: Dict[str, Dict[str, float]] = {}
+
+    for q_id, inferred in combined_extracted.items():
+        if not inferred:
+            continue
+
+        existing_val = existing_answers.get(q_id)
+        if isinstance(existing_val, list) and existing_val:
+            skippable.append(q_id)
+            continue
+        if isinstance(existing_val, str) and existing_val:
+            skippable.append(q_id)
+            continue
+
+        if isinstance(inferred, str):
+            inferred = [inferred]
+            single_select = True
+        else:
+            single_select = False
+
+        high: List[str] = []
+        medium: List[str] = []
+
+        for opt_id in inferred:
+            p_count = prompt_hits.get(q_id, {}).get(opt_id, 0)
+            a_count = attachment_hits.get(q_id, {}).get(opt_id, 0)
+            total_hits = p_count + a_count
+            score = min(
+                1.0,
+                (0.35 * (1 if p_count else 0))
+                + (0.35 * (1 if a_count else 0))
+                + (0.3 * min(2, total_hits)),
+            )
+            confidence_debug.setdefault(q_id, {})[opt_id] = round(score, 3)
+
+            if score >= 0.8:
+                high.append(opt_id)
+            elif score >= 0.5:
+                medium.append(opt_id)
+
+        if high:
+            pre_answers[q_id] = high[0] if single_select else high
+            skippable.append(q_id)
+        elif medium:
+            suggested_answers[q_id] = medium[0] if single_select else medium
+
+    return {
+        "pre_answers": pre_answers,
+        "suggested_answers": suggested_answers,
+        "skippable": skippable,
+        "is_complete": is_complete,
+        "debug": {
+            "confidence": confidence_debug,
+            "sources": {
+                "prompt": prompt_hits,
+                "attachments": attachment_hits,
+            },
+        },
     }
 
 
