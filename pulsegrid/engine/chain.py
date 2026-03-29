@@ -184,6 +184,167 @@ SCENARIO_SIGNALS = {
     "healthy_baseline":      {},
 }
 
+OPTION_TEXT = {
+    "q_structural": {
+        "single_dep": "One service or datastore that everything depends on",
+        "no_failover": "No automatic failover or redundancy",
+        "bad_retries": "Services retry aggressively without backoff",
+        "scale_limited": "Auto-scaling is limited or turned off",
+        "no_circuit": "No circuit breakers configured",
+        "reduced_redun": "Redundancy was recently reduced to cut costs",
+    },
+    "q_external": {
+        "cost_cut": "Recent cost-cutting or resource reduction",
+        "understaffed": "Team is understaffed or under delivery pressure",
+        "vendor_issue": "Cloud provider or vendor capacity constraint",
+        "regulatory": "New regulation or compliance requirement",
+        "geo_event": "Geopolitical event or sanctions affecting a vendor",
+    },
+    "q_trigger": {
+        "deploy": "Recent deployment or configuration change",
+        "traffic": "Unexpected traffic spike or load increase",
+        "dependency": "Third-party service or dependency slowed down",
+        "hardware": "Infrastructure or hardware event",
+        "external": "External event (weather, outage, regulation)",
+        "nothing": "No obvious immediate trigger identified",
+    },
+    "q_telemetry": {
+        "latency_up": "Latency / response time increasing",
+        "error_rate": "Error rate rising",
+        "timeouts_up": "Timeout rate increasing",
+        "retry_high": "Retry rate unusually high",
+        "queue_grow": "Queue depth growing faster than normal",
+        "cpu_high": "CPU or memory pressure",
+        "cache_drop": "Cache hit rate dropping",
+    },
+    "q_user_impact": {
+        "slow_pages": "Pages or API responses loading slowly",
+        "errors": "Errors or failed requests",
+        "timeouts": "Requests timing out entirely",
+        "regional": "Some users affected, others not (regional split)",
+        "jobs_delayed": "Background jobs or notifications delayed",
+        "total_outage": "Complete service unavailability",
+    },
+}
+
+
+def _as_list(value):
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str) and value:
+        return [value]
+    return []
+
+
+def _extract_evidence_layers(responses: dict, signals: dict) -> dict:
+    q_struct = _as_list(responses.get("q_structural"))
+    q_ext = _as_list(responses.get("q_external"))
+    q_tel = _as_list(responses.get("q_telemetry"))
+    q_user = _as_list(responses.get("q_user_impact"))
+    q_trigger = responses.get("q_trigger", "")
+
+    evidence = {
+        "structural_conditions": [OPTION_TEXT["q_structural"][k] for k in q_struct if k in OPTION_TEXT["q_structural"]],
+        "external_pressures": [OPTION_TEXT["q_external"][k] for k in q_ext if k in OPTION_TEXT["q_external"]],
+        "likely_triggers": [OPTION_TEXT["q_trigger"][q_trigger]] if q_trigger in OPTION_TEXT["q_trigger"] else [],
+        "propagation_mechanisms": [],
+        "telemetry_symptoms": [OPTION_TEXT["q_telemetry"][k] for k in q_tel if k in OPTION_TEXT["q_telemetry"]],
+        "user_business_impact": [],
+        "confidence_notes": [],
+    }
+
+    # Conservative propagation inference: only include when directly evidenced.
+    if "retry_high" in q_tel or "bad_retries" in q_struct:
+        evidence["propagation_mechanisms"].append("Retry amplification pressure")
+    if "queue_grow" in q_tel:
+        evidence["propagation_mechanisms"].append("Queue backlog amplification")
+    if "cpu_high" in q_tel:
+        evidence["propagation_mechanisms"].append("Resource saturation propagation")
+    if "cache_drop" in q_tel:
+        evidence["propagation_mechanisms"].append("Cache-miss fallback amplification")
+
+    evidence["user_business_impact"].extend(
+        OPTION_TEXT["q_user_impact"][k] for k in q_user if k in OPTION_TEXT["q_user_impact"]
+    )
+    if "errors" in q_user:
+        evidence["user_business_impact"].append("SLA violation risk")
+    if "total_outage" in q_user:
+        evidence["user_business_impact"].append("Revenue and trust at immediate risk")
+    if "jobs_delayed" in q_user:
+        evidence["user_business_impact"].append("Operational pipeline delay")
+
+    layer_counts = sum(1 for key in (
+        "structural_conditions", "external_pressures", "likely_triggers",
+        "propagation_mechanisms", "telemetry_symptoms", "user_business_impact"
+    ) if evidence[key])
+    evidence["confidence_notes"].append(f"Evidence coverage across {layer_counts}/6 diagnostic layers")
+    if not evidence["propagation_mechanisms"]:
+        evidence["confidence_notes"].append(
+            "No explicit propagation mechanism evidence; avoid labeling downstream amplification as primary diagnosis"
+        )
+    return evidence
+
+
+def _synthesize_diagnosis(evidence: dict) -> dict:
+    structural = " ".join(evidence["structural_conditions"]).lower()
+    triggers = " ".join(evidence["likely_triggers"]).lower()
+    telemetry = " ".join(evidence["telemetry_symptoms"]).lower()
+    propagation = " ".join(evidence["propagation_mechanisms"]).lower()
+
+    why = []
+    secondary = list(evidence["propagation_mechanisms"])
+
+    # Root structural conditions take precedence over downstream effects.
+    if any(term in structural for term in ("everything depends", "no automatic failover", "redundancy")):
+        primary = "Single Point of Failure Cascade Risk"
+        why.append("Core architecture indicates shared dependency fragility and limited failover")
+    elif "auto-scaling is limited" in structural and "queue depth growing" in telemetry:
+        primary = "Capacity-Constrained Throughput Collapse"
+        why.append("Capacity constraints and growing backlog indicate structural throughput limits")
+    elif "third-party service or dependency slowed down" in triggers:
+        primary = "Upstream Dependency Degradation"
+        why.append("A dependency trigger is explicitly identified before downstream symptoms")
+    elif "retry amplification pressure" in propagation:
+        primary = "Retry-Amplified Service Degradation"
+        why.append("Retry amplification is directly supported by explicit telemetry/structural evidence")
+    elif evidence["telemetry_symptoms"] or evidence["user_business_impact"]:
+        primary = "Systemic Service Degradation"
+        why.append("Observed telemetry and user impact indicate active degradation")
+    else:
+        primary = "No Clear Incident Pattern"
+        why.append("Insufficient corroborated evidence for a specific incident diagnosis")
+
+    filled_layers = sum(1 for k in (
+        "structural_conditions", "external_pressures", "likely_triggers",
+        "propagation_mechanisms", "telemetry_symptoms", "user_business_impact"
+    ) if evidence[k])
+    confidence = "high" if filled_layers >= 5 else "medium" if filled_layers >= 3 else "low"
+
+    return {
+        "primary_diagnosis": primary,
+        "why_it_fits": why,
+        "secondary_risks_or_mechanisms": secondary,
+        "confidence": confidence,
+    }
+
+
+def _score_scenario_similarity(signals: dict, selected_option_ids: set) -> dict:
+    scenario_scores = {}
+    for scenario_id, sig_weights in SCENARIO_SIGNALS.items():
+        score = 0
+        for sig, weight in sig_weights.items():
+            if sig in signals:
+                score += signals[sig] * weight
+            elif sig in selected_option_ids:
+                score += weight
+        scenario_scores[scenario_id] = score
+    ranked = sorted(scenario_scores.items(), key=lambda x: x[1], reverse=True)
+    top_id, top_score = ranked[0]
+    runner = ranked[1][1] if len(ranked) > 1 else 0
+    if top_id == "healthy_baseline" or top_score < 4 or (top_score - runner) < 2:
+        return {"closest_known_scenario_match": None, "match_confidence": top_score, "scenario_scores": scenario_scores}
+    return {"closest_known_scenario_match": top_id, "match_confidence": top_score, "scenario_scores": scenario_scores}
+
 
 def diagnose(responses: dict) -> dict:
     """
@@ -212,22 +373,12 @@ def diagnose(responses: dict) -> dict:
                 for sig, wt in opt.get("weight", {}).items():
                     signals[sig] = signals.get(sig, 0) + wt
 
-    # ── Score each scenario ───────────────────────────────────────────────
-    scenario_scores = {}
-    for scenario_id, sig_weights in SCENARIO_SIGNALS.items():
-        score = 0
-        for sig, weight in sig_weights.items():
-            if sig in signals:
-                score += signals[sig] * weight
-            elif sig in selected_option_ids:
-                score += weight
-        scenario_scores[scenario_id] = score
-
-    matched_scenario = max(scenario_scores, key=scenario_scores.get)
-    match_confidence = scenario_scores[matched_scenario]
-
-    if match_confidence < 4:
-        matched_scenario = "healthy_baseline"
+    evidence = _extract_evidence_layers(responses, signals)
+    synthesis = _synthesize_diagnosis(evidence)
+    similarity = _score_scenario_similarity(signals, selected_option_ids)
+    closest_match = similarity["closest_known_scenario_match"]
+    match_confidence = similarity["match_confidence"]
+    matched_scenario = closest_match or "healthy_baseline"
 
     # ── Build chain analysis ──────────────────────────────────────────────
     chain = _build_chain_analysis(matched_scenario, responses, signals, selected_option_ids)
@@ -249,8 +400,26 @@ def diagnose(responses: dict) -> dict:
 
     # ── Summary paragraph ─────────────────────────────────────────────────
     summary = _build_summary(matched_scenario, chain, signals)
+    if matched_scenario == "healthy_baseline" and synthesis["primary_diagnosis"] != "No Clear Incident Pattern":
+        summary = (
+            f"{synthesis['primary_diagnosis']}. "
+            + " ".join(synthesis["why_it_fits"])
+        )
 
     return {
+        "primary_diagnosis": synthesis["primary_diagnosis"],
+        "why_it_fits": synthesis["why_it_fits"],
+        "structural_conditions": evidence["structural_conditions"],
+        "external_pressures": evidence["external_pressures"],
+        "likely_trigger": evidence["likely_triggers"][0] if evidence["likely_triggers"] else "",
+        "likely_triggers": evidence["likely_triggers"],
+        "propagation_mechanisms": evidence["propagation_mechanisms"],
+        "telemetry_symptoms": evidence["telemetry_symptoms"],
+        "user_business_impact": evidence["user_business_impact"],
+        "closest_known_scenario_match": closest_match,
+        "secondary_risks_or_mechanisms": synthesis["secondary_risks_or_mechanisms"],
+        "confidence": synthesis["confidence"],
+        "confidence_notes": evidence["confidence_notes"],
         "matched_scenario": matched_scenario,
         "match_confidence": match_confidence,
         "risk_score":       round(risk_score, 3),
@@ -260,6 +429,7 @@ def diagnose(responses: dict) -> dict:
         "summary":          summary,
         "mitigation":       mitigation,
         "signals_detected": signals,
+        "scenario_similarity_scores": similarity["scenario_scores"],
     }
 
 
