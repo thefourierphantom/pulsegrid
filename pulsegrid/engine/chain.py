@@ -379,20 +379,30 @@ def _build_chain_analysis(scenario, responses, signals, selected_ids):
         stress_factors.append("Cache collapse driving increased backend pressure")
 
     scenario_stress = {
-        "retry_storm":          ["Retry amplification: each auth failure generates 5× retry load",
-                                 "API gateway thread pool saturation"],
-        "queue_backlog":        ["Queue consumer saturation — workers cannot scale further",
-                                 "Database connection pool pressure from worker retries"],
-        "dns_degradation":      ["Timeout clustering across all DNS-dependent service calls"],
-        "seismic_failure":      ["Connection drops causing immediate cascading failure",
-                                 "No graceful shutdown — in-flight requests abandoned"],
-        "cost_cut_redundancy":  ["Cache miss storm — all reads falling through to database",
-                                 "Database connection exhaustion under direct load"],
-        "vendor_capacity_crunch": ["Worker saturation — existing instances at 99% CPU",
-                                   "Queue depth building as workers cannot scale"],
-        "hurricane_datacenter": ["Thermal throttling reducing effective compute capacity",
-                                 "Network packet loss increasing retry load on internal calls"],
-        "bgp_route_leak":       ["Traffic taking 3–5 extra AS hops — exponential latency increase"],
+        "retry_storm":          ["Retry amplification: each failed auth request generates 3–5× retry load depending on max retry config",
+                                 "API gateway thread pool saturation — backlog grows until capacity is exhausted"],
+        "queue_backlog":        ["Queue consumer saturation — workers processing at max capacity, unable to catch up",
+                                 "Database connection pool pressure from worker retries on failed messages"],
+        "dns_degradation":      ["Timeout clustering across all DNS-dependent service calls — auth, API routing, service discovery all affected",
+                                 "Connection pool exhaustion as hung requests hold connections waiting for DNS responses"],
+        "seismic_failure":      ["Connection drops causing immediate cascading failure across dependent services",
+                                 "No graceful shutdown — in-flight requests abandoned, partial writes possible"],
+        "cost_cut_redundancy":  ["Cache miss storm — 100% of cache reads falling through to database directly",
+                                 "Database connection pool exhaustion as read and write traffic combines on single node"],
+        "vendor_capacity_crunch": ["Worker saturation — existing instances at ceiling CPU, no new capacity available",
+                                   "Queue depth compounding as workers cannot scale to meet ingestion rate"],
+        "hurricane_datacenter": ["Thermal throttling reducing effective compute capacity as cooling struggles",
+                                 "Network packet loss on coastal fiber routes amplifying retry load on internal calls"],
+        "bgp_route_leak":       ["Traffic routed through 3–5 extra AS hops — cumulative latency increase of 50–400ms per request",
+                                 "Connection pool pressure as client-side timeouts fire on slow requests"],
+        "regional_divergence":  ["Database replication lag growing in degraded region — read queries returning stale data",
+                                 "Load balancer health checks may not detect partial degradation, routing traffic unevenly"],
+        "power_grid_brownout":  ["CPU frequency throttling across all compute nodes — uniform processing slowdown",
+                                 "Queue depth building as all workloads slow in parallel — not isolated to one service"],
+        "regulatory_reroute":   ["Cross-region database reads now required for affected users — latency added per query",
+                                 "Compounding effect on APIs that make multiple dependent reads per request"],
+        "cdn_sanctions":        ["CDN cache miss storm on secondary CDN — cold caches serving all requests from origin",
+                                 "DNS propagation lag causing some clients to still resolve to the sanctioned CDN"],
     }
     for factor in scenario_stress.get(scenario, []):
         if factor not in stress_factors:
@@ -570,7 +580,7 @@ def _build_mitigation(scenario, chain, signals):
                 "base 100ms, multiplier 2×, cap 10s, ±30% jitter. "
                 "In Node.js: use `axios-retry` with `exponentialDelay`. "
                 "In Python: use `tenacity` with `wait_exponential(min=0.1, max=10, multiplier=2)`. "
-                "This reduces retry load by ~80% within 90 seconds of deployment.",
+                "This dramatically reduces retry frequency — the improvement is proportional to your current retry interval.",
                 "Enforce a retry budget across all callers: max 2 retries per original request per hop. "
                 "This caps amplification at 3× per service instead of unbounded. "
                 "Enforce via API Gateway policy (AWS: add MaxRetries attribute to integration) "
@@ -602,10 +612,11 @@ def _build_mitigation(scenario, chain, signals):
         },
         "dns_degradation": {
             "now": [
-                "Flush DNS resolver cache and manually switch to secondary resolver: "
-                "In Linux: `systemd-resolve --flush-caches` then update `/etc/resolv.conf` to secondary. "
-                "In AWS Route 53 Resolver: update inbound endpoint to secondary resolver IP. "
-                "This moves traffic off the degraded resolver in under 60 seconds.",
+                "Add a secondary DNS resolver without removing the primary: "
+                "In Linux: edit `/etc/resolv.conf` to have BOTH nameserver entries (primary on line 1, secondary on line 2). "
+                "This lets the OS fall back to the secondary on timeout without abandoning the primary if it recovers. "
+                "Then flush the cache: `systemd-resolve --flush-caches`. "
+                "In AWS Route 53 Resolver: add a second inbound endpoint in a different AZ — do not remove the first.",
                 "Reduce TTL to 30s on all critical service A/CNAME records immediately. "
                 "This accelerates propagation of any recovery update. "
                 "In Route 53: `aws route53 change-resource-record-sets` with TTL: 30. "
@@ -640,9 +651,10 @@ def _build_mitigation(scenario, chain, signals):
                 "Inspect dead-letter queue for stuck or poison messages that are blocking normal processing. "
                 "In AWS SQS: check the DLQ in the console or via `aws sqs get-queue-attributes`. "
                 "Purge or reprocess DLQ messages separately — do not let them block the main queue.",
-                "Apply message TTL to cap queue depth: set MessageRetentionPeriod to 4 hours "
-                "(down from default 4 days) to expire oldest messages if they represent stale work. "
-                "Caution: only do this if stale messages have no business consequence.",
+                "CAUTION — only if messages are ephemeral (notifications, cache warm-up, analytics): "
+                "reduce MessageRetentionPeriod to 4 hours to expire stale messages and let the queue drain. "
+                "Do NOT do this for financial transactions, order processing, or any work with a business consequence. "
+                "In AWS SQS: `aws sqs set-queue-attributes --queue-url <url> --attributes MessageRetentionPeriod=14400`.",
             ],
             "next": [
                 "Increase autoscaling maximum instance count from current cap to 3× current max. "
@@ -759,8 +771,9 @@ def _build_mitigation(scenario, chain, signals):
                 "In GCP: update backend service weights in the global load balancer. "
                 "Monitor error rate for 2 minutes after the shift to confirm affected user population decreases.",
                 "Check database replication lag for the degraded region. "
-                "If replication lag exceeds 30 seconds, pause writes to that region to prevent data divergence. "
-                "In AWS RDS: check `ReplicaLag` CloudWatch metric. In PostgreSQL: `SELECT * FROM pg_stat_replication`.",
+                "In AWS RDS: check `ReplicaLag` CloudWatch metric. In PostgreSQL: `SELECT * FROM pg_stat_replication`. "
+                "If you use multi-writer replication and replication lag exceeds 30 seconds, pause writes to the degraded region to prevent divergence. "
+                "In a standard primary-replica setup, verify the replica is still receiving replication updates from primary.",
                 "Alert affected customers in the degraded geography if they are enterprise accounts with SLAs. "
                 "Pro-active communication preserves trust. Post a status page entry indicating regional degradation.",
             ],
@@ -783,10 +796,10 @@ def _build_mitigation(scenario, chain, signals):
         },
         "cost_cut_redundancy": {
             "now": [
-                "Provision a replacement cache replica immediately. In AWS ElastiCache: "
-                "`aws elasticache create-replication-group --replication-group-id <id>`. "
+                "Add a replacement cache replica to the existing cluster immediately. In AWS ElastiCache: "
+                "`aws elasticache increase-replica-count --replication-group-id <your-group-id> --new-replica-count 1 --apply-immediately`. "
                 "This takes 5–10 minutes. In the interim, add a DB connection pool limit of 30 per service "
-                "to prevent full connection exhaustion while cache is warming up. "
+                "to prevent full connection exhaustion while the new replica warms up. "
                 "Do NOT restart the database — that will extend the outage by 10–20 minutes.",
                 "Rate-limit inbound API traffic at the load balancer to protect the database. "
                 "In AWS ALB: add a WAF rate limit rule of 50% normal request rate. "
@@ -907,7 +920,7 @@ def _build_mitigation(scenario, chain, signals):
         "power_grid_brownout": {
             "now": [
                 "Contact your datacenter facility team and get real-time fuel and UPS status. "
-                "Standard 72-hour generator fuel + 30% cooling overhead = 52-hour effective window. "
+                "Standard 72-hour rated generator fuel with ~30% overhead for cooling = roughly 50-hour effective window. "
                 "If fuel is below 50%: arrange resupply now — delivery takes 4–12 hours in storm conditions.",
                 "Shed non-critical batch workloads immediately to reduce power and thermal draw. "
                 "Disable: ML inference jobs, analytics pipelines, nightly reports, image processing queues. "

@@ -28,7 +28,7 @@ from engine.recommendations import get_recommendations
 from simulator.scenarios    import (get_scenario_history, get_scenario_context,
                                     list_scenarios, list_categories, TOTAL_STEPS)
 from engine.chain           import diagnose, LAYERS, QUESTIONS
-from engine.chatbot         import answer_chat, extract_and_diagnose
+from engine.chatbot         import answer_chat, extract_and_diagnose, extract_signals_for_wizard
 
 # ── Global scenario cache ─────────────────────────────────────────────────────
 _cache_lock   = threading.Lock()
@@ -228,6 +228,19 @@ class PulseGridHandler(BaseHTTPRequestHandler):
         # ── API: diagnostic questions schema
         if path == "/api/questions":
             self._send_json({"questions": QUESTIONS, "layers": LAYERS})
+            return
+
+        # ── API: extract signals from free-text for smart wizard skipping
+        if path == "/api/extract":
+            msg = params.get("message", [""])[0].strip()
+            if not msg:
+                self._send_json({"pre_answers": {}, "skippable": [], "is_complete": False})
+                return
+            try:
+                result = extract_signals_for_wizard(msg)
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"pre_answers": {}, "skippable": [], "is_complete": False, "error": str(e)})
             return
 
         # ── 404

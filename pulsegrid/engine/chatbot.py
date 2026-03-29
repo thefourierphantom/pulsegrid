@@ -277,15 +277,15 @@ _SIGNAL_KEYWORDS: List[Tuple[str, str, str]] = [
     # (keyword_pattern, question_id, option_id)
     # q_user_impact
     (r"\b(slow|latent|sluggish|response time|loading slow)\b",         "q_user_impact", "slow_pages"),
-    (r"\b(error|5[0-9][0-9]|failed request|failure rate)\b",           "q_user_impact", "errors"),
-    (r"\b(timeout|timed out|hanging|hung)\b",                           "q_user_impact", "timeouts"),
+    (r"\b(error|5[0-9][0-9]|failed request|failure rate|failing|fail(?:ed|ing))\b", "q_user_impact", "errors"),
+    (r"\b(timeout|timed out|timing out|hanging|hung|intermittent)\b",   "q_user_impact", "timeouts"),
     (r"\b(region|geographic|geo|some users|subset of users|partial)\b", "q_user_impact", "regional"),
     (r"\b(job|queue.*delay|notification.*delay|background.*delay)\b",   "q_user_impact", "jobs_delayed"),
     (r"\b(down|outage|unavailable|complete failure|total)\b",           "q_user_impact", "total_outage"),
     # q_telemetry
-    (r"\b(latency.*up|p95|p99|response time.*rising|slower)\b",         "q_telemetry",  "latency_up"),
+    (r"\b(latency|p95|p99|response time)\b",                            "q_telemetry",  "latency_up"),
     (r"\b(error rate|error.*rising|4xx|5xx.*spike)\b",                  "q_telemetry",  "error_rate"),
-    (r"\b(timeout rate|timeouts.*increasing)\b",                        "q_telemetry",  "timeouts_up"),
+    (r"\b(timeout rate|timeouts.*increasing|timeouts.*up)\b",           "q_telemetry",  "timeouts_up"),
     (r"\b(retry|retries|retry storm|retry.*high)\b",                    "q_telemetry",  "retry_high"),
     (r"\b(queue.*depth|queue.*growing|backlog|message.*piling)\b",      "q_telemetry",  "queue_grow"),
     (r"\b(cpu|memory|resource.*pressure|saturat)\b",                    "q_telemetry",  "cpu_high"),
@@ -293,7 +293,9 @@ _SIGNAL_KEYWORDS: List[Tuple[str, str, str]] = [
     # q_trigger
     (r"\b(deploy|deployment|config change|release|push|rollout)\b",     "q_trigger",    "deploy"),
     (r"\b(traffic spike|load spike|surge|sudden.*traffic)\b",           "q_trigger",    "traffic"),
-    (r"\b(third.party|external.*service|dependency.*slow|vendor.*issue|provider.*down)\b", "q_trigger", "dependency"),
+    # DNS/service-discovery issues are dependency triggers
+    (r"\b(dns|service[\s-]?discover|name[\s-]?resolut|resolver|resolv)\b", "q_trigger", "dependency"),
+    (r"\b(dependency|dependenc|third.party|external.*service|dependency.*slow|vendor.*issue|provider.*down)\b", "q_trigger", "dependency"),
     (r"\b(hardware|server.*fail|machine.*fail|disk|instance.*fail)\b",  "q_trigger",    "hardware"),
     (r"\b(weather|hurricane|earthquake|storm|seismic|power|flood|sanction|regulation)\b", "q_trigger", "external"),
     # q_structural
@@ -452,12 +454,157 @@ Prevention: {prevent}
     return base
 
 
+# ── Wizard signal pre-extraction ─────────────────────────────────────────────
+
+def extract_signals_for_wizard(text: str) -> Dict[str, Any]:
+    """
+    Extract signals from free text and return which wizard questions
+    are already answered so the frontend can skip them.
+
+    Returns:
+        pre_answers  — dict mapping question_id → extracted answer(s)
+        skippable    — list of question IDs that don't need to be asked
+        is_complete  — True if enough signal exists to skip the wizard entirely
+    """
+    extracted = _extract_signals_from_text(text)
+    is_complete = _is_sufficient_for_diagnosis(text, extracted)
+
+    pre_answers: Dict[str, Any] = {}
+    skippable: List[str] = []
+
+    for q_id, val in extracted.items():
+        if isinstance(val, list) and val:
+            pre_answers[q_id] = val
+            skippable.append(q_id)
+        elif isinstance(val, str) and val:
+            pre_answers[q_id] = val
+            skippable.append(q_id)
+
+    return {
+        "pre_answers": pre_answers,
+        "skippable":   skippable,
+        "is_complete": is_complete,
+    }
+
+
+# ── Open-ended (GPT-powered) diagnosis for novel incidents ────────────────────
+
+def open_ended_diagnose(description: str, extracted_signals: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Use GPT to generate a full 7-layer chain analysis for any incident,
+    not limited to the 13 hardcoded scenarios. Falls back gracefully if
+    OpenAI is unavailable.
+
+    Returns a result dict in the same format as chain.diagnose().
+    """
+    from .chain import LAYERS
+
+    sys_prompt = _build_system_prompt("diagnostic")
+    signals_summary = ", ".join(
+        f"{k}={v}" for k, v in extracted_signals.items() if v and v != [] and v != ""
+    )
+
+    user_prompt = (
+        f"Incident description: {description}\n\n"
+        f"Extracted signals: {signals_summary or 'none extracted — use the description directly'}\n\n"
+        f"Analyze this incident using the 7-layer Failure Propagation Chain.\n"
+        f"Return ONLY valid JSON with this exact structure (no markdown, no code blocks):\n"
+        f"{{\n"
+        f'  "incident_name": "short descriptive name (3-5 words, no hyphens)",\n'
+        f'  "risk_score": 0.0,\n'
+        f'  "risk_state": "healthy|degraded|critical|cascading",\n'
+        f'  "summary": "2-3 sentences: what is happening, why, what breaks next",\n'
+        f'  "chain": {{\n'
+        f'    "layer_0": {{"factors": ["..."], "active": true}},\n'
+        f'    "layer_1": {{"factors": ["..."], "active": true}},\n'
+        f'    "layer_2": {{"factors": ["..."], "active": true}},\n'
+        f'    "layer_3": {{"factors": ["..."], "active": true}},\n'
+        f'    "layer_4": {{"factors": ["..."], "active": true}},\n'
+        f'    "layer_5": {{"factors": ["..."], "active": true}},\n'
+        f'    "layer_6": {{"factors": ["..."], "active": true}}\n'
+        f'  }},\n'
+        f'  "mitigation": {{\n'
+        f'    "now": ["step 1", "step 2", "step 3"],\n'
+        f'    "next": ["next 1", "next 2"],\n'
+        f'    "prevent": ["prevent 1", "prevent 2"]\n'
+        f'  }}\n'
+        f"}}\n\n"
+        f"Fill each layer with real, specific factors from the incident description. "
+        f"Use empty arrays only if a layer truly has no involvement. "
+        f"risk_score should be 0.0-1.0 (0.8+ = cascading, 0.6-0.8 = critical, 0.4-0.6 = degraded, <0.4 = low)."
+    )
+
+    raw = _call_openai(sys_prompt, user_prompt, temperature=0.15)
+    if not raw:
+        return None
+
+    try:
+        clean = raw.strip()
+        # Strip markdown fences if present
+        if clean.startswith("```"):
+            lines = clean.split("\n")
+            clean = "\n".join(lines[1:] if lines[0].startswith("```") else lines)
+            if clean.endswith("```"):
+                clean = clean[:-3]
+        data = json.loads(clean)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+    # Build chain in the same format chain.diagnose() uses
+    chain: Dict[str, Any] = {}
+    for i in range(7):
+        lk = f"layer_{i}"
+        ld = data.get("chain", {}).get(lk, {})
+        chain[lk] = {
+            "layer":   LAYERS[i],
+            "factors": ld.get("factors", []),
+            "active":  ld.get("active", bool(ld.get("factors"))),
+        }
+
+    raw_risk = float(data.get("risk_score", 0.5))
+    risk_score = round(min(1.0, max(0.0, raw_risk)), 3)
+    risk_state = data.get("risk_state", "degraded")
+
+    from .scoring import STATE_COLORS
+    risk_color = STATE_COLORS.get(risk_state, "#fb923c")
+
+    # Normalize mitigation to the format renderResults() expects
+    mit_raw = data.get("mitigation", {})
+    mitigation = {
+        "now":     [{"text": s, "how": ""} for s in mit_raw.get("now", [])],
+        "next":    [{"text": s, "how": ""} for s in mit_raw.get("next", [])],
+        "prevent": [{"text": s, "how": ""} for s in mit_raw.get("prevent", [])],
+    }
+
+    incident_name = data.get("incident_name", "custom_incident")
+    scenario_id   = incident_name.lower().replace(" ", "_").replace("-", "_")[:40]
+
+    return {
+        "matched_scenario":  scenario_id,
+        "scenario_label":    incident_name,
+        "match_confidence":  12,
+        "risk_score":        risk_score,
+        "risk_state":        risk_state,
+        "risk_color":        risk_color,
+        "chain":             chain,
+        "summary":           data.get("summary", ""),
+        "mitigation":        mitigation,
+        "signals_detected":  extracted_signals,
+        "is_open_ended":     True,
+    }
+
+
 # ── Free-text extraction + diagnosis ─────────────────────────────────────────
 
 def extract_and_diagnose(message: str) -> Optional[Dict[str, Any]]:
     """
     If the message is a sufficient incident description, extract signals,
     run diagnose(), and return the full result dict.
+
+    When the structured scenario-matching confidence is low (novel incident
+    that doesn't fit the 13 known patterns), falls back to open_ended_diagnose()
+    which uses GPT to produce a fully custom 7-layer analysis.
+
     Returns None if the message is not a sufficient incident description.
     """
     extracted = _extract_signals_from_text(message)
@@ -465,6 +612,30 @@ def extract_and_diagnose(message: str) -> Optional[Dict[str, Any]]:
         return None
 
     diag = diagnose(extracted)
+
+    # Low confidence: novel incident — try GPT-powered open-ended analysis
+    LOW_CONFIDENCE_THRESHOLD = 6
+    if diag["match_confidence"] < LOW_CONFIDENCE_THRESHOLD or diag["matched_scenario"] == "healthy_baseline":
+        oe = open_ended_diagnose(message, diag.get("signals_detected", {}))
+        if oe:
+            # Generate narrative from GPT using the open-ended result
+            sys_p = _build_system_prompt("diagnostic")
+            narr = _call_openai(sys_p, (
+                f"Incident: {message}\n\n"
+                f"Chain analysis complete. Incident name: {oe['scenario_label']}. "
+                f"Risk: {round(oe['risk_score']*100)}% ({oe['risk_state']}). "
+                f"Summary: {oe['summary']}\n\n"
+                f"Write a 2-paragraph incident brief. First paragraph: what is happening "
+                f"and the root cause chain. Second paragraph: what to do in the next 5 minutes. "
+                f"Be specific. No hedging. No hyphens."
+            ), temperature=0.2) or oe["summary"]
+            return {
+                "full_result":  oe,
+                "narrative":    narr,
+                "scenario":     oe["matched_scenario"],
+                "risk_score":   oe["risk_score"],
+                "risk_state":   oe["risk_state"],
+            }
 
     # If score is too low to match anything meaningful, return None
     if diag["matched_scenario"] == "healthy_baseline" and diag["match_confidence"] < 2:

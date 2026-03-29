@@ -17,18 +17,53 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .screen.active{display:flex;}
 
 /* ─── WELCOME ─────────────────────────────────────── */
-#screen-welcome{flex-direction:column;align-items:center;justify-content:flex-start;padding:52px 20px 48px;text-align:center;position:relative;overflow-y:auto;}
-.unified-wrap{width:100%;max-width:600px;margin-bottom:32px;position:relative;}
-.unified-input-outer{display:flex;gap:0;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;margin-bottom:10px;box-shadow:0 4px 24px rgba(0,0,0,.25);}
+#screen-welcome{flex-direction:column;align-items:center;justify-content:flex-start;padding:44px 20px 64px;text-align:center;position:relative;overflow-y:auto;}
+.grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(99,102,241,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.035) 1px,transparent 1px);background-size:52px 52px;pointer-events:none;}
+/* scan-line shimmer */
+.grid-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(99,102,241,.04) 100%);pointer-events:none;}
+
+/* brand row */
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:36px;position:relative;}
+.logo-mark{width:48px;height:48px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 32px rgba(99,102,241,.4);}
+.brand-name{font-size:24px;font-weight:800;letter-spacing:-0.5px;}
+.brand-ai{color:var(--accent);}
+.brand-tag{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-left:4px;border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+
+/* hero */
+.hero-title{font-size:54px;font-weight:900;letter-spacing:-2.5px;line-height:1.05;margin-bottom:20px;max-width:680px;}
+.hero-grad{background:linear-gradient(125deg,#fff 20%,var(--accent) 60%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:15px;color:var(--dim);max-width:520px;line-height:1.7;margin-bottom:36px;}
+.hero-sub strong{color:var(--text);}
+
+/* input block */
+.unified-wrap{width:100%;max-width:620px;margin-bottom:28px;position:relative;}
+.unified-input-outer{display:flex;gap:0;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;margin-bottom:10px;box-shadow:0 4px 28px rgba(0,0,0,.3);}
 .unified-input-outer:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.12);}
-.unified-input{flex:1;background:transparent;border:none;padding:14px 16px;color:var(--text);font-size:14px;outline:none;font-family:inherit;resize:none;line-height:1.5;min-height:52px;}
-.unified-input::placeholder{color:var(--muted);}
-.unified-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;padding:14px 20px;cursor:pointer;color:white;font-size:13px;font-weight:700;white-space:nowrap;transition:opacity .2s;flex-shrink:0;}
+.unified-input{flex:1;background:transparent;border:none;padding:14px 16px;color:var(--text);font-size:13.5px;outline:none;font-family:inherit;resize:none;line-height:1.55;min-height:52px;}
+.unified-input::placeholder{color:var(--muted);font-size:13px;}
+.unified-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;padding:14px 22px;cursor:pointer;color:white;font-size:13px;font-weight:700;white-space:nowrap;transition:opacity .2s;flex-shrink:0;letter-spacing:.3px;}
 .unified-btn:hover{opacity:.88;}
-.unified-hints{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
-.hint-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--dim);cursor:pointer;transition:all .15s;}
+.unified-hints{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:4px;}
+.hint-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:11px;color:var(--dim);cursor:pointer;transition:all .15s;}
 .hint-pill:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.08);}
-.or-divider{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);margin-bottom:20px;width:100%;max-width:600px;}
+.guided-link{font-size:11px;color:var(--muted);margin-top:8px;}
+.guided-link a{color:var(--accent);cursor:pointer;text-decoration:none;}
+.guided-link a:hover{text-decoration:underline;}
+
+/* 7-layer chain diagram */
+.chain-section{width:100%;max-width:780px;margin-bottom:36px;}
+.chain-section-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;text-align:left;}
+.chain-strip{display:flex;align-items:stretch;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface);}
+.chain-node{flex:1;padding:12px 8px;text-align:center;position:relative;transition:background .15s;cursor:default;min-width:0;}
+.chain-node:not(:last-child)::after{content:'→';position:absolute;right:-7px;top:50%;transform:translateY(-50%);color:var(--border);font-size:10px;z-index:1;}
+.chain-node:hover{background:rgba(99,102,241,.06);}
+.cn-badge{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px;padding:2px 5px;border-radius:4px;display:inline-block;}
+.cn-label{font-size:10px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px;}
+.cn-desc{font-size:9px;color:var(--muted);line-height:1.3;}
+@media(max-width:720px){.chain-strip{flex-direction:column;}.chain-node:not(:last-child)::after{content:'↓';right:auto;left:50%;top:auto;bottom:-8px;transform:translateX(-50%);}}
+
+/* scenario tiles */
+.or-divider{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);margin-bottom:18px;width:100%;max-width:720px;}
 .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .home-scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:720px;margin-bottom:16px;}
 @media(max-width:640px){.home-scenarios{grid-template-columns:repeat(2,1fr);}}
@@ -39,17 +74,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .hs-desc{font-size:10px;color:var(--muted);line-height:1.4;}
 .hs-view-all{grid-column:1/-1;background:transparent;border:1px dashed var(--border);border-radius:12px;padding:11px;text-align:center;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;}
 .hs-view-all:hover{border-color:var(--accent);color:var(--accent);}
-.guided-link{font-size:11px;color:var(--muted);margin-top:6px;}
-.guided-link a{color:var(--accent);cursor:pointer;text-decoration:none;}
-.guided-link a:hover{text-decoration:underline;}
-.grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(99,102,241,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
-.brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;position:relative;}
-.logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(99,102,241,.35);}
-.brand-name{font-size:26px;font-weight:800;letter-spacing:-0.5px;}
-.brand-ai{color:var(--accent);}
-.hero-title{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1.1;margin-bottom:16px;max-width:640px;}
-.hero-grad{background:linear-gradient(135deg,#fff 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hero-sub{font-size:17px;color:var(--dim);max-width:480px;line-height:1.6;margin-bottom:44px;}
+.welcome-footer{color:var(--muted);font-size:11px;position:relative;letter-spacing:.5px;}
+
+/* legacy card styles — kept for other screens that use them */
 .cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;width:240px;text-align:left;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
 .card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 12px 40px rgba(99,102,241,.18);}
@@ -58,7 +85,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .card-icon{font-size:26px;margin-bottom:10px;}
 .card-title{font-size:15px;font-weight:700;margin-bottom:5px;}
 .card-desc{font-size:12px;color:var(--muted);line-height:1.5;}
-.welcome-footer{color:var(--muted);font-size:12px;position:relative;}
 
 /* ─── SPLIT DIAGNOSTIC BUILD LAYOUT ─────────── */
 #screen-chat{flex-direction:row!important;max-width:none;width:100%;padding:0;max-height:100vh;}
@@ -85,6 +111,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .split-quick-btns{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
 .split-quick-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:11px;color:var(--dim);cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;width:100%;}
 .split-quick-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.05);}
+
+.back-btn{background:none;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--muted);cursor:pointer;display:flex;align-items:center;transition:all .15s;flex-shrink:0;}
+.back-btn:hover{border-color:var(--accent);color:var(--accent);}
 
 /* ─── CHAT (legacy style kept for shared elements) ───── */
 #screen-chat .chat-header{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;}
@@ -362,6 +391,55 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 .glow-cascade{animation:cascadeGlow 2s ease-in-out infinite;}
 @keyframes cascadeGlow{0%,100%{filter:drop-shadow(0 0 6px rgba(167,139,250,.4));}50%{filter:drop-shadow(0 0 20px rgba(167,139,250,.8));}}
+
+/* ─── LANDING PAGE ANIMATIONS ────────────────────── */
+/* Incident ticker */
+.incident-ticker-bar{width:100%;max-width:780px;display:flex;align-items:center;gap:12px;margin-bottom:28px;position:relative;overflow:hidden;}
+.ticker-label{font-size:9px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--accent);background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:4px;padding:3px 8px;flex-shrink:0;white-space:nowrap;}
+.ticker-live-dot{width:6px;height:6px;border-radius:50%;background:#34d399;flex-shrink:0;animation:blink 1.4s infinite;}
+.ticker-track{flex:1;overflow:hidden;position:relative;height:22px;}
+.ticker-inner{display:flex;gap:0;white-space:nowrap;animation:tickerScroll 28s linear infinite;}
+.ticker-inner:hover{animation-play-state:paused;}
+.ticker-item{display:inline-flex;align-items:center;gap:6px;padding:0 24px;font-size:11px;color:var(--dim);}
+.ticker-scenario{font-weight:600;color:var(--text);}
+.ticker-badge{font-size:9px;font-weight:800;letter-spacing:.5px;padding:2px 6px;border-radius:3px;text-transform:uppercase;}
+.ticker-badge.critical{background:rgba(239,68,68,.15);color:#ef4444;}
+.ticker-badge.high{background:rgba(251,146,60,.15);color:#fb923c;}
+.ticker-badge.medium{background:rgba(251,191,36,.15);color:#fbbf24;}
+.ticker-sep{color:var(--border);margin:0 4px;}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* Logo pulse */
+@keyframes logoPulse{0%,100%{box-shadow:0 0 32px rgba(99,102,241,.4)}50%{box-shadow:0 0 52px rgba(99,102,241,.75),0 0 80px rgba(99,102,241,.25)}}
+.logo-mark{animation:logoPulse 3s ease-in-out infinite;}
+
+/* Chain cascade propagation wave */
+.chain-node{transition:background .3s,box-shadow .3s;}
+.chain-node.chain-wave{background:rgba(99,102,241,.1)!important;box-shadow:0 0 18px rgba(99,102,241,.2);}
+.chain-node.chain-wave .cn-badge{transform:scale(1.08);transition:transform .2s;}
+.chain-node.chain-wave-red{background:rgba(239,68,68,.1)!important;box-shadow:0 0 18px rgba(239,68,68,.2);}
+.chain-node.chain-wave-red .cn-badge{transform:scale(1.08);transition:transform .2s;}
+
+/* Problem statement */
+.problem-row{display:flex;align-items:stretch;gap:8px;width:100%;max-width:620px;margin-bottom:22px;}
+.problem-col{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:left;}
+.problem-col.active-col{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.04);}
+.problem-col-label{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+.problem-col.active-col .problem-col-label{color:#ef4444;}
+.problem-col-label.blue-lbl{color:var(--accent);}
+.problem-col-item{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:4px;display:flex;align-items:flex-start;gap:5px;}
+.problem-col-item::before{content:'·';flex-shrink:0;color:var(--dim);}
+.problem-col.pulsegrid-col{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.04);}
+
+/* Animated metric badges */
+.metric-strip{display:flex;gap:8px;width:100%;max-width:620px;margin-bottom:24px;}
+.metric-badge{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 12px;text-align:center;}
+.metric-badge-num{font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:3px;}
+.metric-badge-lbl{font-size:9px;color:var(--muted);line-height:1.35;}
+@media(max-width:540px){.metric-strip{flex-direction:column;}.problem-row{flex-direction:column;}}
+
+/* Blinking dot */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 </style>
 </head>
 <body>
@@ -369,73 +447,184 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
 <!-- ═══════════ WELCOME ═════════════════════════════ -->
 <div id="screen-welcome" class="screen active">
   <div class="grid-bg"></div>
+
+  <!-- brand -->
   <div class="brand">
     <div class="logo-mark">
-      <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+      <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
         <path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="28" cy="16" r="3" fill="white" opacity=".85"/>
+        <circle cx="28" cy="16" r="2.5" fill="white" opacity=".9"/>
       </svg>
     </div>
     <div class="brand-name">Pulse<span class="brand-ai">Grid AI</span></div>
+    <span class="brand-tag">CLOUD FAILURE INTELLIGENCE</span>
   </div>
-  <div class="hero-title"><span class="hero-grad">Describe what's wrong.<br>We'll trace it to the root.</span></div>
-  <div class="hero-sub">Type a symptom, a signal, or an incident — PulseGrid maps it across 7 failure layers and tells you what to do next.</div>
 
-  <!-- ── Unified input ── -->
+  <!-- live incident ticker -->
+  <div class="incident-ticker-bar">
+    <span class="ticker-label">Simulations</span>
+    <div class="ticker-live-dot"></div>
+    <div class="ticker-track">
+      <div class="ticker-inner" id="incident-ticker">
+        <span class="ticker-item"><span class="ticker-scenario">Retry Storm</span><span class="ticker-badge critical">CASCADING</span><span class="ticker-sep">·</span>87% risk<span class="ticker-sep">·</span>L3 saturated</span>
+        <span class="ticker-item"><span class="ticker-scenario">DNS Degradation</span><span class="ticker-badge high">DEGRADED</span><span class="ticker-sep">·</span>61% risk<span class="ticker-sep">·</span>service discovery failing</span>
+        <span class="ticker-item"><span class="ticker-scenario">Queue Backlog</span><span class="ticker-badge high">STRESSED</span><span class="ticker-sep">·</span>54% risk<span class="ticker-sep">·</span>4h lag, workers maxed</span>
+        <span class="ticker-item"><span class="ticker-scenario">Cost-Cut Redundancy</span><span class="ticker-badge critical">CASCADING</span><span class="ticker-sep">·</span>91% risk<span class="ticker-sep">·</span>single node, no fallback</span>
+        <span class="ticker-item"><span class="ticker-scenario">BGP Route Leak</span><span class="ticker-badge medium">DEGRADED</span><span class="ticker-sep">·</span>48% risk<span class="ticker-sep">·</span>+180ms latency per hop</span>
+        <span class="ticker-item"><span class="ticker-scenario">Vendor Capacity Crunch</span><span class="ticker-badge high">STRESSED</span><span class="ticker-sep">·</span>73% risk<span class="ticker-sep">·</span>InsufficientCapacity</span>
+        <span class="ticker-item"><span class="ticker-scenario">Regional Divergence</span><span class="ticker-badge medium">DEGRADED</span><span class="ticker-sep">·</span>52% risk<span class="ticker-sep">·</span>EU cluster isolated</span>
+        <!-- duplicate for seamless loop -->
+        <span class="ticker-item"><span class="ticker-scenario">Retry Storm</span><span class="ticker-badge critical">CASCADING</span><span class="ticker-sep">·</span>87% risk<span class="ticker-sep">·</span>L3 saturated</span>
+        <span class="ticker-item"><span class="ticker-scenario">DNS Degradation</span><span class="ticker-badge high">DEGRADED</span><span class="ticker-sep">·</span>61% risk<span class="ticker-sep">·</span>service discovery failing</span>
+        <span class="ticker-item"><span class="ticker-scenario">Queue Backlog</span><span class="ticker-badge high">STRESSED</span><span class="ticker-sep">·</span>54% risk<span class="ticker-sep">·</span>4h lag, workers maxed</span>
+        <span class="ticker-item"><span class="ticker-scenario">Cost-Cut Redundancy</span><span class="ticker-badge critical">CASCADING</span><span class="ticker-sep">·</span>91% risk<span class="ticker-sep">·</span>single node, no fallback</span>
+        <span class="ticker-item"><span class="ticker-scenario">BGP Route Leak</span><span class="ticker-badge medium">DEGRADED</span><span class="ticker-sep">·</span>48% risk<span class="ticker-sep">·</span>+180ms latency per hop</span>
+        <span class="ticker-item"><span class="ticker-scenario">Vendor Capacity Crunch</span><span class="ticker-badge high">STRESSED</span><span class="ticker-sep">·</span>73% risk<span class="ticker-sep">·</span>InsufficientCapacity</span>
+        <span class="ticker-item"><span class="ticker-scenario">Regional Divergence</span><span class="ticker-badge medium">DEGRADED</span><span class="ticker-sep">·</span>52% risk<span class="ticker-sep">·</span>EU cluster isolated</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- hero -->
+  <div class="hero-title"><span class="hero-grad">Model a cloud incident.
+Trace the full chain.
+Know what to do next.</span></div>
+  <div class="hero-sub">
+    Whether you’re responding to a live incident or stress-testing a hypothetical one, PulseGrid simulates a dashboard that maps the full failure chain and recommends what to do now, next, and long term.
+  </div>
+
+  <!-- why you need this -->
+  <div class="problem-row">
+    <div class="problem-col active-col">
+      <div class="problem-col-label">Standard observability tools</div>
+      <div class="problem-col-item">Alert when something is already broken</div>
+      <div class="problem-col-item">Show metrics in isolation, not causally</div>
+      <div class="problem-col-item">Can’t trace structural risk before failure</div>
+      <div class="problem-col-item">Leave the "why" up to the responder</div>
+    </div>
+    <div class="problem-col pulsegrid-col">
+      <div class="problem-col-label blue-lbl">PulseGrid</div>
+      <div class="problem-col-item">Maps the incident across 7 causal layers</div>
+      <div class="problem-col-item">Models hypothetical failures before they happen</div>
+      <div class="problem-col-item">Surfaces structural fragility at the source</div>
+      <div class="problem-col-item">Generates guided response at every level</div>
+    </div>
+  </div>
+
+  <!-- metric stats strip -->
+  <div class="metric-strip">
+    <div class="metric-badge">
+      <div class="metric-badge-num">7</div>
+      <div class="metric-badge-lbl">Causal layers mapped per incident — from budget decision to user impact</div>
+    </div>
+    <div class="metric-badge">
+      <div class="metric-badge-num">13+</div>
+      <div class="metric-badge-lbl">Pre-built failure scenarios with full chain analysis and blast radius</div>
+    </div>
+    <div class="metric-badge">
+      <div class="metric-badge-num">∞</div>
+      <div class="metric-badge-lbl">Novel incidents analyzed via AI — not limited to predefined templates</div>
+    </div>
+  </div>
+
+  <!-- input -->
   <div class="unified-wrap">
     <div class="unified-input-outer">
       <textarea class="unified-input" id="unified-input"
-        placeholder="e.g. 'auth timeouts spiking after deploy, retries climbing' or 'queue depth growing faster than workers can drain'"
+        placeholder="Describe the incident, organization structure, or failure pattern…"
         onkeydown="unifiedKey(event)" rows="2"></textarea>
-      <button class="unified-btn" onclick="submitUnified()">Analyze →</button>
+      <button class="unified-btn" onclick="submitUnified()">Generate Dashboard →</button>
     </div>
     <div class="unified-hints">
-      <span class="hint-pill" onclick="fillHint('retries spiking after deploy, auth errors climbing')">retries spiking</span>
-      <span class="hint-pill" onclick="fillHint('cache node down, database getting overwhelmed')">cache failure</span>
-      <span class="hint-pill" onclick="fillHint('queue backlog growing, workers maxed out')">queue backlog</span>
-      <span class="hint-pill" onclick="fillHint('one region degraded, other regions fine')">regional split</span>
-      <span class="hint-pill" onclick="fillHint('autoscale failing, vendor capacity exhausted')">capacity crunch</span>
+      <span class="hint-pill" onclick="fillHint('retries spiking after deploy, auth errors climbing, no circuit breaker')">retry storm</span>
+      <span class="hint-pill" onclick="fillHint('cache node removed, database connections exhausted under load')">cache failure</span>
+      <span class="hint-pill" onclick="fillHint('queue depth growing faster than workers can drain, notifications delayed')">queue backlog</span>
+      <span class="hint-pill" onclick="fillHint('one region showing elevated errors, other regions healthy')">regional split</span>
+      <span class="hint-pill" onclick="fillHint('autoscale returning InsufficientCapacity, workers maxed out')">capacity crunch</span>
+      <span class="hint-pill" onclick="fillHint('latency up 3x after config change, timeouts across downstream services')">config rollout</span>
     </div>
-    <div class="guided-link">Prefer guided questions? <a onclick="startDiagnostic()">Answer 5 quick questions instead →</a></div>
+    <div class="guided-link">Unsure where to start? <a onclick="startDiagnostic()">Answer 5 targeted questions instead →</a></div>
   </div>
 
-  <!-- ── Or choose a scenario ── -->
-  <div class="or-divider">or jump to a pre-built scenario</div>
+  <!-- 7-layer chain diagram -->
+  <div class="chain-section">
+    <div class="chain-section-label">The Failure Propagation Chain — how PulseGrid reads every incident</div>
+    <div class="chain-strip">
+      <div class="chain-node">
+        <div class="cn-badge" style="background:rgba(99,102,241,.15);color:#6366f1;">L0</div>
+        <div class="cn-label">External Drivers</div>
+        <div class="cn-desc">Budget cuts, understaffing, launch rush</div>
+      </div>
+      <div class="chain-node">
+        <div class="cn-badge" style="background:rgba(139,92,246,.15);color:#8b5cf6;">L1</div>
+        <div class="cn-label">Structural Conditions</div>
+        <div class="cn-desc">SPOF, no failover, aggressive retries</div>
+      </div>
+      <div class="chain-node">
+        <div class="cn-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;">L2</div>
+        <div class="cn-label">Triggering Events</div>
+        <div class="cn-desc">Bad deploy, traffic spike, dependency fail</div>
+      </div>
+      <div class="chain-node">
+        <div class="cn-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">L3</div>
+        <div class="cn-label">Internal Stress Mechanics</div>
+        <div class="cn-desc">Retry storms, queue overflow, exhaustion</div>
+      </div>
+      <div class="chain-node">
+        <div class="cn-badge" style="background:rgba(251,146,60,.15);color:#fb923c;">L4</div>
+        <div class="cn-label">Telemetry Warning Signs</div>
+        <div class="cn-desc">Latency up, error rate rising, cache drops</div>
+      </div>
+      <div class="chain-node">
+        <div class="cn-badge" style="background:rgba(251,191,36,.15);color:#fbbf24;">L5</div>
+        <div class="cn-label">User Degradation</div>
+        <div class="cn-desc">Slow pages, errors, late notifications</div>
+      </div>
+      <div class="chain-node">
+        <div class="cn-badge" style="background:rgba(52,211,153,.15);color:#34d399;">L6</div>
+        <div class="cn-label">Business Impact</div>
+        <div class="cn-desc">Revenue loss, SLA breach, churn risk</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- pre-built scenarios -->
+  <div class="or-divider">or load a pre-built scenario</div>
   <div class="home-scenarios">
     <div class="hs-card" onclick="loadDemo('retry_storm','Retry Storm')">
       <div class="hs-icon">🔁</div>
       <div class="hs-name">Retry Storm</div>
-      <div class="hs-desc">Auth failure triggers cascading retries, saturating thread pools</div>
+      <div class="hs-desc">Auth failure triggers cascading retries, saturating thread pools across dependent services</div>
     </div>
     <div class="hs-card" onclick="loadDemo('cost_cut_redundancy','Cost-Cut Redundancy')">
       <div class="hs-icon">💸</div>
       <div class="hs-name">Cost-Cut Redundancy</div>
-      <div class="hs-desc">Removed cache replica exposes single point of failure under load</div>
+      <div class="hs-desc">Removed cache replica exposes a single point of failure when primary node falls</div>
     </div>
     <div class="hs-card" onclick="loadDemo('hurricane_datacenter','Hurricane Datacenter')">
       <div class="hs-icon">🌀</div>
       <div class="hs-name">Hurricane Datacenter</div>
-      <div class="hs-desc">Physical datacenter threat with no pre-staged regional failover</div>
+      <div class="hs-desc">Physical datacenter event with no pre-staged regional failover in place</div>
     </div>
     <div class="hs-card" onclick="loadDemo('vendor_capacity_crunch','Vendor Capacity Crunch')">
       <div class="hs-icon">⚡</div>
       <div class="hs-name">Vendor Capacity Crunch</div>
-      <div class="hs-desc">Cloud region compute exhausted — autoscale returns InsufficientCapacity</div>
+      <div class="hs-desc">Cloud region compute exhausted — autoscale returns InsufficientCapacityError</div>
     </div>
     <div class="hs-card" onclick="loadDemo('queue_backlog','Queue Backlog')">
       <div class="hs-icon">📦</div>
       <div class="hs-name">Queue Backlog</div>
-      <div class="hs-desc">Consumer processing falls below ingestion — jobs pile up for hours</div>
+      <div class="hs-desc">Consumer processing rate falls below ingestion — jobs pile up for hours</div>
     </div>
     <div class="hs-card" onclick="loadDemo('bgp_route_leak','BGP Route Leak')">
       <div class="hs-icon">🌐</div>
       <div class="hs-name">BGP Route Leak</div>
-      <div class="hs-desc">Misconfigured peer misdirects traffic, adding 80–200ms per hop</div>
+      <div class="hs-desc">Misconfigured peer misdirects traffic, adding 80 to 200ms per hop across regions</div>
     </div>
-    <div class="hs-view-all" onclick="showDemo()">View all 13 scenarios →</div>
+    <div class="hs-view-all" onclick="showDemo()">View all scenarios in library →</div>
   </div>
 
-  <div class="welcome-footer">HackUSF 2026 · Built on the Failure Propagation Chain framework</div>
+  <div class="welcome-footer">HackUSF 2026 · PulseGrid · Built on the Failure Propagation Chain framework</div>
 </div>
 
 <!-- ═══════════ CHAT / LIVE BUILD ════════════════════ -->
@@ -444,6 +633,9 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
   <!-- ── Left: Q&A wizard (becomes follow-up chatbot after diagnosis) ── -->
   <div class="split-left">
     <div class="chat-header">
+      <button class="back-btn" onclick="go('screen-welcome')" title="Back to home">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
       <div class="chat-logo">
         <svg width="17" height="17" viewBox="0 0 32 32" fill="none">
           <path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -499,13 +691,13 @@ canvas.ld-wave{display:block;width:100%;height:100%;}
 <!-- ═══════════ LOADING ══════════════════════════════ -->
 <div id="screen-loading" class="screen" style="align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;padding:40px;">
   <div class="spin"></div>
-  <div class="loading-title">Tracing your failure chain…</div>
+  <div class="loading-title" id="loading-title">Tracing your failure chain…</div>
   <div class="loading-steps" id="lsteps">
-    <div class="lstep on"><div class="ldot"></div><span>Building signal vector from responses</span></div>
-    <div class="lstep"><div class="ldot"></div><span>Scoring 13 scenario templates</span></div>
-    <div class="lstep"><div class="ldot"></div><span>Matching to failure pattern</span></div>
-    <div class="lstep"><div class="ldot"></div><span>Populating 7-layer chain analysis</span></div>
-    <div class="lstep"><div class="ldot"></div><span>Generating mitigation recommendations</span></div>
+    <div class="lstep on"><div class="ldot"></div><span id="lstep-0">Extracting incident signals</span></div>
+    <div class="lstep"><div class="ldot"></div><span id="lstep-1">Identifying failure pattern</span></div>
+    <div class="lstep"><div class="ldot"></div><span id="lstep-2">Mapping to 7-layer propagation chain</span></div>
+    <div class="lstep"><div class="ldot"></div><span id="lstep-3">Analyzing blast radius across dependencies</span></div>
+    <div class="lstep"><div class="ldot"></div><span id="lstep-4">Generating mitigation playbook</span></div>
   </div>
 </div>
 
@@ -679,9 +871,9 @@ function initLiveDash() {
   const el = document.getElementById('live-dash');
   if (!el) return;
   el.innerHTML = `
-    <div class="live-eyebrow">Live Analysis — Building</div>
-    <div class="live-headline" id="live-headline">Answer the questions to build your failure chain.</div>
-    <div class="live-sub" id="live-sub">Each answer reveals another layer of the incident.</div>
+    <div class="live-eyebrow">Failure Chain — Analyzing</div>
+    <div class="live-headline" id="live-headline">Processing incident signals…</div>
+    <div class="live-sub" id="live-sub">Layers unlock as signals are identified.</div>
     <div id="live-layers">
       ${LAYER_META.map((l,i)=>`
         <div class="live-layer" id="ll-${i}">
@@ -866,7 +1058,8 @@ function finalizeToResults() {
 // ──────────────────────────────────────────────
 //  WELCOME → START DIAGNOSTIC
 // ──────────────────────────────────────────────
-async function startDiagnostic() {
+// startDiagnostic([preText]) — optionally pass the user's initial prompt to skip answered questions
+async function startDiagnostic(preText) {
   go('screen-chat');
   clearMsgs();
   S.step = 0; S.answers = {};
@@ -884,8 +1077,50 @@ async function startDiagnostic() {
     return;
   }
 
+  // Smart skip + immediate dashboard build from initial description
+  if (preText && preText.trim().length >= 8) {
+    const trimmed = preText.trim();
+
+    // Show the user's input in chat right away
+    const uEl = document.createElement('div');
+    uEl.className = 'msg user fade';
+    uEl.innerHTML = `<div class="avatar">👤</div><div class="msg-body"><div class="msg-from">You</div><div class="bubble">${esc(trimmed)}</div></div>`;
+    document.getElementById('messages')?.appendChild(uEl);
+
+    try {
+      const ext = await api(`/api/extract?message=${encodeURIComponent(trimmed)}`);
+      if (ext && ext.pre_answers && Object.keys(ext.pre_answers).length > 0) {
+        Object.assign(S.answers, ext.pre_answers);
+        const skippable = new Set(ext.skippable || []);
+        while (S.step < S.questions.length && skippable.has(S.questions[S.step].id)) {
+          S.step++;
+        }
+        updateProg();
+
+        // Immediately start building the dashboard with whatever was extracted
+        updateLiveDash();
+
+        if (S.step >= S.questions.length) {
+          // All 5 dimensions answered — run full diagnosis now
+          await wait(300);
+          aiMsg("Signal analysis complete. Running full chain analysis now…");
+          await runDiagnosis();
+          return;
+        }
+
+        const skipped = Object.keys(ext.pre_answers).length;
+        const remaining = S.questions.length - S.step;
+        await wait(250);
+        aiMsg(`Mapped ${skipped} signal${skipped>1?'s':''} from your description — dashboard building on the right. ${remaining} question${remaining>1?'s':''} to complete the full chain.`);
+        await wait(400);
+        askQ();
+        return;
+      }
+    } catch(e) { /* fall through */ }
+  }
+
   await wait(350);
-  aiMsg("I'm PulseGrid AI. Tell me what's happening and I'll trace it from root cause to business impact — seven layers deep.\n\nFirst: what are users experiencing right now?");
+  aiMsg("I'm PulseGrid AI. Describe what you're seeing and I'll map it across the 7-layer failure chain.\n\nFirst: what are users experiencing right now?");
   await wait(500);
   askQ();
 }
@@ -905,55 +1140,8 @@ function unifiedKey(e) {
 async function submitUnified() {
   const input = document.getElementById('unified-input');
   const txt = (input ? input.value : '').trim();
-  if (!txt) { startDiagnostic(); return; }
-
-  // Attempt NLP bypass: if enough signal, jump straight to results
-  go('screen-loading');
-  await animateLoad(450);
-
-  try {
-    const resp = await api('/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        mode: 'diagnostic',
-        message: txt,
-        step: 0,
-        current_question: null,
-        responses: {},
-      })
-    });
-
-    if (resp && resp.full_result) {
-      const norm = normalizeResult(resp.full_result);
-      norm.narrative = resp.reply;
-      renderResults(norm);
-      go('screen-results');
-      return;
-    }
-  } catch(e) {}
-
-  // Fallback: go to guided chat wizard with text pre-seeded in context
-  go('screen-chat');
-  clearMsgs();
-  S.step = 0; S.answers = {};
-  S.diagnosisComplete = false;
-  S.partialResult = null;
-  S.activeResult = null;
-  initLiveDash();
-  updateProg();
-
-  try {
-    const d = await api('/api/questions');
-    S.questions = d.questions || [];
-  } catch(e) {
-    aiMsg("⚠️ Can't reach the analysis engine. Make sure the server is running and refresh.");
-    return;
-  }
-
-  await wait(350);
-  aiMsg(`Got it — let me ask a few questions to trace this fully.\n\nFirst: what are users experiencing right now?`);
-  await wait(400);
-  askQ();
+  // Always go directly to the split chat view — dashboard starts building immediately
+  await startDiagnostic(txt || null);
 }
 
 // ──────────────────────────────────────────────
@@ -995,6 +1183,8 @@ function renderDemos(data) {
 }
 
 async function loadDemo(id, label) {
+  // Use label as context so loading steps match the scenario
+  setLoadingContext(id.replace(/_/g,' ') + ' ' + (label||''));
   go('screen-loading');
   await animateLoad(550);
   try {
@@ -1149,6 +1339,11 @@ function askQ() {
   const isMulti = q.type === 'multi';
 
   const wrap = document.getElementById('messages');
+
+  // Remove id from any previous active question so getElementById never returns a stale element
+  const prevActive = document.getElementById('active-q');
+  if (prevActive) prevActive.removeAttribute('id');
+
   const el = document.createElement('div');
   el.className = 'msg fade';
   el.id = 'active-q';
@@ -1160,7 +1355,7 @@ function askQ() {
   optsHtml += `</div>`;
   if (isMulti) {
     optsHtml += `<div class="multi-hint">Select all that apply, then confirm.</div>
-      <button class="confirm-btn" id="confirm-btn" onclick="confirmMulti()">Confirm →</button>`;
+      <button class="confirm-btn" onclick="confirmMulti()">Confirm →</button>`;
   }
 
   const av = `<div class="avatar"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
@@ -1173,7 +1368,9 @@ function pick(btn, isMulti) {
   if (isMulti) {
     btn.classList.toggle('sel');
     const any = document.querySelectorAll('#active-q .opt.sel').length > 0;
-    document.getElementById('confirm-btn')?.classList.toggle('show', any);
+    // Scope to #active-q — never touch confirm buttons from previous questions
+    const confirmBtn = document.querySelector('#active-q .confirm-btn');
+    if (confirmBtn) confirmBtn.classList.toggle('show', any);
   } else {
     document.querySelectorAll('#active-q .opt').forEach(b => { b.classList.remove('sel'); b.disabled = true; });
     btn.classList.add('sel');
@@ -1187,7 +1384,9 @@ function confirmMulti() {
   const ids = [], labels = [];
   sels.forEach(b => { ids.push(b.dataset.id); labels.push(b.dataset.label); });
   document.querySelectorAll('#active-q .opt').forEach(b => b.disabled = true);
-  document.getElementById('confirm-btn').style.display = 'none';
+  // Scope to #active-q — no getElementById so old buttons are never touched
+  const confirmBtn = document.querySelector('#active-q .confirm-btn');
+  if (confirmBtn) confirmBtn.style.display = 'none';
   submitAns(ids, labels.join(', '));
 }
 
@@ -1247,6 +1446,7 @@ async function sendText() {
       typing.querySelector('.bubble').innerHTML =
         '<strong>Incident recognized.</strong> Running full chain analysis…';
       await wait(600);
+      setLoadingContext(txt);
       go('screen-loading');
       await animateLoad(500);
       const norm = normalizeResult(resp.full_result);
@@ -2075,8 +2275,72 @@ async function runSearchDiagnosis(id, label, query) {
 }
 
 // ──────────────────────────────────────────────
-//  LOADING ANIM
+//  LOADING CONTEXT + ANIM
 // ──────────────────────────────────────────────
+
+function setLoadingContext(text) {
+  const t = (text || '').toLowerCase();
+  let title = 'Tracing your failure chain…';
+  let steps = [
+    'Extracting incident signals',
+    'Identifying failure pattern',
+    'Mapping to 7-layer propagation chain',
+    'Analyzing blast radius across dependencies',
+    'Generating mitigation playbook',
+  ];
+
+  // Tailor steps to what's actually being analyzed
+  if (/retry|circuit|backoff/.test(t)) {
+    title = 'Analyzing retry amplification pattern…';
+    steps[1] = 'Detecting retry storm propagation path';
+    steps[2] = 'Tracing thread pool saturation chain';
+  } else if (/queue|backlog|consumer|worker/.test(t)) {
+    title = 'Modeling queue depth propagation…';
+    steps[1] = 'Calculating consumer lag and ingestion delta';
+    steps[2] = 'Mapping queue overflow cascade chain';
+  } else if (/dns|resolver/.test(t)) {
+    title = 'Tracing DNS resolution failure chain…';
+    steps[1] = 'Mapping DNS timeout propagation';
+    steps[2] = 'Identifying downstream lookup dependencies';
+  } else if (/region|geographic|geo|partial/.test(t)) {
+    title = 'Diagnosing regional divergence…';
+    steps[1] = 'Isolating affected availability zones';
+    steps[2] = 'Mapping traffic distribution failure';
+  } else if (/deploy|config|rollout|release/.test(t)) {
+    title = 'Tracing deployment failure chain…';
+    steps[1] = 'Correlating deployment timeline to signal onset';
+    steps[2] = 'Identifying config drift propagation';
+  } else if (/capacity|autoscal|instance|vendor/.test(t)) {
+    title = 'Analyzing capacity constraint failure…';
+    steps[1] = 'Modeling auto-scale failure under load';
+    steps[2] = 'Tracing queue depth accumulation chain';
+  } else if (/hurricane|earthquake|weather|seismic|power/.test(t)) {
+    title = 'Mapping physical infrastructure event…';
+    steps[1] = 'Assessing datacenter impact radius';
+    steps[2] = 'Tracing power/connectivity failure chain';
+  } else if (/bgp|route|network|routing/.test(t)) {
+    title = 'Tracing network routing anomaly…';
+    steps[1] = 'Identifying misrouted traffic paths';
+    steps[2] = 'Measuring latency amplification per hop';
+  } else if (/cost|redundan|standby|replica/.test(t)) {
+    title = 'Diagnosing redundancy failure…';
+    steps[1] = 'Locating removed single point of failure';
+    steps[2] = 'Tracing connection exhaustion cascade';
+  }
+
+  const titleEl = document.getElementById('loading-title');
+  if (titleEl) titleEl.textContent = title;
+  steps.forEach((s, i) => {
+    const el = document.getElementById(`lstep-${i}`);
+    if (el) el.textContent = s;
+  });
+
+  // Reset step classes
+  document.querySelectorAll('#lsteps .lstep').forEach((s, i) => {
+    s.className = 'lstep' + (i === 0 ? ' on' : '');
+  });
+}
+
 async function animateLoad(interval) {
   const steps = document.querySelectorAll('#lsteps .lstep');
   for (let i = 0; i < steps.length; i++) {
@@ -2226,6 +2490,50 @@ function drawDetailWave(canvas, severity, color, layerIdx) {
   ctx.fillText(`L${layerIdx} · ${(severity||'').toUpperCase()}`, 8, 14);
 }
 
+
+// ── LANDING PAGE ANIMATIONS ────────────────────────────
+// Cascade wave: simulates failure propagating L0 → L6
+(function() {
+  const LAYER_COLORS = [
+    ['chain-wave','chain-wave'],       // L0 indigo
+    ['chain-wave','chain-wave'],       // L1 indigo
+    ['chain-wave','chain-wave'],       // L2 indigo
+    ['chain-wave-red','chain-wave-red'],// L3 red (stress)
+    ['chain-wave-red','chain-wave-red'],// L4 red
+    ['chain-wave-red','chain-wave-red'],// L5 red
+    ['chain-wave-red','chain-wave-red'],// L6 red
+  ];
+
+  function runCascade() {
+    const nodes = document.querySelectorAll('#screen-welcome .chain-node');
+    if (!nodes.length) return;
+    // Clear all first
+    nodes.forEach(n => { n.classList.remove('chain-wave','chain-wave-red'); });
+
+    let i = 0;
+    function step() {
+      if (i >= nodes.length) {
+        // Hold then restart
+        setTimeout(runCascade, 3200);
+        return;
+      }
+      nodes[i].classList.add(LAYER_COLORS[i][0]);
+      // Remove after 700ms
+      const capturedI = i;
+      setTimeout(() => nodes[capturedI].classList.remove(LAYER_COLORS[capturedI][0]), 700);
+      i++;
+      setTimeout(step, 320);
+    }
+    setTimeout(step, 600);
+  }
+
+  // Start when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(runCascade, 800));
+  } else {
+    setTimeout(runCascade, 800);
+  }
+})();
 
 </script>
 </body>
