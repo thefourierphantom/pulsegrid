@@ -360,16 +360,29 @@ def _is_sufficient_for_diagnosis(text: str, extracted: Dict[str, Any]) -> bool:
 
 # ── OpenAI call ───────────────────────────────────────────────────────────────
 
-def _call_openai(system_prompt: str, user_message: str, temperature: float = 0.25) -> Optional[str]:
+def _call_openai(
+    system_prompt: str,
+    user_message: str,
+    temperature: float = 0.25,
+    attachments: Optional[List[Dict[str, Any]]] = None,
+) -> Optional[str]:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
     model = os.getenv("PULSEGRID_CHAT_MODEL", "gpt-4.1-mini")
+    user_content: List[Dict[str, Any]] = [{"type": "input_text", "text": user_message}]
+    for item in (attachments or [])[:3]:
+        if not isinstance(item, dict):
+            continue
+        img = item.get("image_base64")
+        if isinstance(img, str) and img.startswith("data:image/"):
+            user_content.append({"type": "input_image", "image_url": img})
+
     payload = {
         "model": model,
         "input": [
             {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
-            {"role": "user",   "content": [{"type": "input_text", "text": user_message}]},
+            {"role": "user",   "content": user_content},
         ],
         "temperature": temperature,
     }
@@ -840,6 +853,7 @@ def answer_chat(
     current_question: Optional[str] = None,
     scenario_context: Optional[Dict[str, Any]] = None,
     scenario_state: Optional[Dict[str, Any]] = None,
+    attachments: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Unified chat brain for both diagnostic and scenario modes.
@@ -878,7 +892,7 @@ def answer_chat(
             f"Tentative scenario: {t_scenario} at {t_risk}% risk\n"
             f"User message: {message}"
         )
-        live = _call_openai(sys_prompt, user_prompt)
+        live = _call_openai(sys_prompt, user_prompt, attachments=attachments)
         return live or _fallback_diagnostic(message, responses, step, current_question)
 
     # Scenario mode — rich context injection
@@ -906,5 +920,5 @@ def answer_chat(
         f"Scenario context: {scenario_context.get('summary', '')[:300]}\n"
         f"User message: {message}"
     )
-    live = _call_openai(sys_prompt, user_prompt)
+    live = _call_openai(sys_prompt, user_prompt, attachments=attachments)
     return live or _fallback_scenario(message, active_scenario, scenario_context, scenario_state)

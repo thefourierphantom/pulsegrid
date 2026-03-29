@@ -36,6 +36,36 @@ _scenario_cache: dict = {}          # name → list of frames
 _active_scenario: str = "healthy_baseline"
 
 
+def _compose_message_with_attachments(message: str, attachments) -> str:
+    """
+    Flatten attachment payload into prompt-safe text so existing
+    extraction + fallback logic can consume it.
+    """
+    base = (message or "").strip()
+    if not attachments:
+        return base
+
+    blocks = []
+    for idx, item in enumerate(attachments[:3], start=1):
+        if not isinstance(item, dict):
+            continue
+        name = (item.get("name") or f"attachment_{idx}")[:120]
+        ftype = (item.get("type") or "unknown")[:80]
+        size = item.get("size", 0)
+        excerpt = (item.get("text_excerpt") or "").strip()
+        if excerpt:
+            excerpt = excerpt[:8000]
+            blocks.append(f"[Attachment {idx}: {name} ({ftype}, {size} bytes)]\n{excerpt}")
+        else:
+            blocks.append(f"[Attachment {idx}: {name} ({ftype}, {size} bytes)]")
+
+    if not blocks:
+        return base
+    if base:
+        return f"{base}\n\n" + "\n\n".join(blocks)
+    return "\n\n".join(blocks)
+
+
 def _ensure_scenario(name: str):
     """Pre-compute scenario history and store in cache."""
     with _cache_lock:
@@ -253,6 +283,23 @@ class PulseGridHandler(BaseHTTPRequestHandler):
         path   = parsed.path
         params = parse_qs(parsed.query)
 
+        if path == "/api/extract":
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                body   = self.rfile.read(length) if length else b"{}"
+                payload = json.loads(body) if body else {}
+                message = (payload.get("message") or "").strip()
+                attachments = payload.get("attachments") or []
+                merged_message = _compose_message_with_attachments(message, attachments)
+                if not merged_message.strip():
+                    self._send_json({"pre_answers": {}, "skippable": [], "is_complete": False})
+                    return
+                result = extract_signals_for_wizard(merged_message)
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"pre_answers": {}, "skippable": [], "is_complete": False, "error": str(e)})
+            return
+
         if path == "/api/scenario/load":
             name = params.get("name", ["healthy_baseline"])[0]
             _ensure_scenario(name)
@@ -280,15 +327,17 @@ class PulseGridHandler(BaseHTTPRequestHandler):
                 payload = json.loads(body) if body else {}
                 mode = payload.get("mode", "scenario")
                 message = payload.get("message", "")
+                attachments = payload.get("attachments") or []
                 scenario = payload.get("scenario") or _active_scenario
                 responses = payload.get("responses") or {}
                 step = payload.get("step")
                 current_question = payload.get("current_question")
+                enriched_message = _compose_message_with_attachments(message, attachments)
 
                 # ── Free-text bypass: if diagnostic mode and message describes incident,
                 #    extract signals and return full diagnosis so frontend can skip wizard
-                if mode == "diagnostic" and message:
-                    bypass = extract_and_diagnose(message)
+                if mode == "diagnostic" and enriched_message:
+                    bypass = extract_and_diagnose(enriched_message)
                     if bypass is not None:
                         self._send_json({
                             "reply":       bypass["narrative"],
@@ -325,10 +374,10 @@ class PulseGridHandler(BaseHTTPRequestHandler):
                         scenario_state["_top_action"]     = top_action
 
                 # Augment message with extra context when provided
-                augmented_message = message
+                augmented_message = enriched_message
                 if mode == "scenario" and chain_summary:
                     augmented_message = (
-                        f"{message}\n\n[Context: chain={chain_summary} | "
+                        f"{enriched_message}\n\n[Context: chain={chain_summary} | "
                         f"blast={blast_radius_summary} | "
                         f"risk={client_risk_state} {round(float(client_risk_score)*100)}% | "
                         f"top_action={top_action[:100]}]"
@@ -343,6 +392,7 @@ class PulseGridHandler(BaseHTTPRequestHandler):
                     current_question=current_question,
                     scenario_context=scenario_context,
                     scenario_state=scenario_state,
+                    attachments=attachments,
                 )
                 self._send_json({"reply": reply})
             except Exception as e:
