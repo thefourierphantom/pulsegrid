@@ -150,9 +150,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .opt.sel{border-color:var(--accent2);color:var(--accent2);background:rgba(139,92,246,.1);font-weight:600;}
 .opt:disabled{opacity:.5;cursor:default;}
 .multi-hint{font-size:11px;color:var(--muted);margin-top:6px;font-style:italic;}
-.confirm-btn{display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:9px;padding:9px 18px;color:white;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;transition:opacity .2s;}
-.confirm-btn:hover{opacity:.85;}
-.confirm-btn.show{display:block;}
 
 .input-row{padding:12px 0 20px;border-top:1px solid var(--border);display:flex;gap:8px;}
 .chat-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;font-family:inherit;transition:border-color .2s;resize:none;height:44px;}
@@ -1354,8 +1351,7 @@ function askQ() {
   });
   optsHtml += `</div>`;
   if (isMulti) {
-    optsHtml += `<div class="multi-hint">Select all that apply, then confirm.</div>
-      <button class="confirm-btn" onclick="confirmMulti()">Confirm →</button>`;
+    optsHtml += `<div class="multi-hint">Select all that apply, then press send or type your answer.</div>`;
   }
 
   const av = `<div class="avatar"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M4 16L10 8L16 20L22 10L28 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
@@ -1367,10 +1363,6 @@ function askQ() {
 function pick(btn, isMulti) {
   if (isMulti) {
     btn.classList.toggle('sel');
-    const any = document.querySelectorAll('#active-q .opt.sel').length > 0;
-    // Scope to #active-q — never touch confirm buttons from previous questions
-    const confirmBtn = document.querySelector('#active-q .confirm-btn');
-    if (confirmBtn) confirmBtn.classList.toggle('show', any);
   } else {
     document.querySelectorAll('#active-q .opt').forEach(b => { b.classList.remove('sel'); b.disabled = true; });
     btn.classList.add('sel');
@@ -1378,16 +1370,64 @@ function pick(btn, isMulti) {
   }
 }
 
-function confirmMulti() {
+function submitSelectedMultiIfAny() {
   const sels = document.querySelectorAll('#active-q .opt.sel');
-  if (!sels.length) return;
+  if (!sels.length) return false;
   const ids = [], labels = [];
   sels.forEach(b => { ids.push(b.dataset.id); labels.push(b.dataset.label); });
   document.querySelectorAll('#active-q .opt').forEach(b => b.disabled = true);
-  // Scope to #active-q — no getElementById so old buttons are never touched
-  const confirmBtn = document.querySelector('#active-q .confirm-btn');
-  if (confirmBtn) confirmBtn.style.display = 'none';
   submitAns(ids, labels.join(', '));
+  return true;
+}
+
+function parseTypedAnswerForQuestion(text, q) {
+  if (!q || !text) return null;
+  const norm = text.toLowerCase().trim();
+  const normCompact = norm.replace(/[^a-z0-9]/g, '');
+
+  // Support "1", "1,3", "1 and 3" style answers
+  const numericHits = new Set();
+  const numMatches = norm.match(/\d+/g) || [];
+  numMatches.forEach(raw => {
+    const idx = parseInt(raw, 10) - 1;
+    if (idx >= 0 && idx < q.options.length) numericHits.add(q.options[idx].id);
+  });
+
+  const matched = new Set();
+  q.options.forEach((opt) => {
+    const label = (opt.label || '').toLowerCase();
+    const labelCompact = label.replace(/[^a-z0-9]/g, '');
+    const idNorm = (opt.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    if (numericHits.has(opt.id)) matched.add(opt.id);
+    if (!label) return;
+
+    const labelWords = label.split(/\s+/).filter(w => w.length >= 4);
+    const overlap = labelWords.filter(w => norm.includes(w)).length;
+    const overlapRatio = labelWords.length ? (overlap / labelWords.length) : 0;
+    const strongPartial = labelWords.length <= 2 ? overlap >= 1 : overlapRatio >= 0.5;
+
+    if (
+      norm === label ||
+      norm.includes(label) ||
+      label.includes(norm) ||
+      normCompact === labelCompact ||
+      normCompact === idNorm ||
+      strongPartial
+    ) {
+      matched.add(opt.id);
+    }
+  });
+
+  if (!matched.size) return null;
+  const ids = Array.from(matched);
+  if (q.type === 'single') {
+    const first = ids[0];
+    const opt = q.options.find(o => o.id === first);
+    return { ids: [first], label: opt ? opt.label : text };
+  }
+  const labels = q.options.filter(o => ids.includes(o.id)).map(o => o.label);
+  return { ids, label: labels.join(', ') || text };
 }
 
 async function submitAns(ids, label) {
@@ -1419,15 +1459,35 @@ async function submitAns(ids, label) {
 async function sendText() {
   const input = document.getElementById('chat-input');
   const txt = input.value.trim();
-  if (!txt) return;
+  const q = S.questions[S.step] || null;
+
+  // Multi-select submit via send button with no typed text
+  if (!txt) {
+    if (!S.diagnosisComplete && q && q.type === 'multi' && submitSelectedMultiIfAny()) return;
+    return;
+  }
   input.value = '';
 
   // Post-diagnosis: route all text to follow-up chatbot in split-left
   if (S.diagnosisComplete) { splitFollowUp(txt); return; }
 
+  // During wizard: treat typed message as an answer to the active question first
+  const parsed = parseTypedAnswerForQuestion(txt, q);
+  if (parsed) {
+    const activeOpts = document.querySelectorAll('#active-q .opt');
+    if (activeOpts.length) {
+      activeOpts.forEach(b => {
+        const selected = parsed.ids.includes(b.dataset.id);
+        b.classList.toggle('sel', selected);
+        b.disabled = true;
+      });
+    }
+    submitAns(parsed.ids, parsed.label);
+    return;
+  }
+
   userMsg(txt);
 
-  const q = S.questions[S.step] || null;
   const typing = aiMsg('<span style="color:var(--muted)">Analyzing…</span>');
   try {
     const resp = await api('/api/chat', {
